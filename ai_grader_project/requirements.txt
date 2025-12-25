@@ -1,0 +1,9 @@
+torch
+transformers
+pillow
+sentence-transformers
+scikit-learn
+opencv-python
+flask
+firebase-admin
+gunicorn
