@@ -7,3 +7,5 @@ opencv-python
 flask
 firebase-admin
 gunicorn
+
+google-generativeai
