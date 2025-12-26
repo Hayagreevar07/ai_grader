@@ -106,6 +106,7 @@ def student_search():
 @app.route('/upload', methods=['GET', 'POST'])
 # @login_required  <-- DISABLED AUTHENTICATION
 def staff_dashboard():
+    print(f"DEBUG: Endpoint /upload accessed. Method: {request.method}")
     if request.method == 'POST':
         print("DEBUG: POST request received at /upload")
         print(f"DEBUG: Files: {request.files.keys()}")
