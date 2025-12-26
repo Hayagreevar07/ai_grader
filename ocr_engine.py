@@ -19,7 +19,7 @@ class OCREngine:
             
         # Try using the specific 'latest' alias or fallback to 'gemini-pro' (text) / 'gemini-pro-vision' logic if needed.
         # However, 1.5-flash is multimodal. Let's try the concrete 001 version or latest.
-        self.model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        self.model = genai.GenerativeModel('gemini-1.5-flash-001')
 
     def process_image(self, image_path, model_type="handwritten"):
         """
