@@ -8,7 +8,8 @@ from grader import Grader
 from firebase_manager import FirebaseManager
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
+# CRITICAL FIX: Use a stable key so sessions don't persist across restarts/workers
+app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret_key_fixed_for_stability")
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -41,8 +42,10 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
+            print("DEBUG: Access Denied. No user in session. Redirecting to login.")
             flash("Please log in to access this page.", "warning")
             return redirect(url_for('login'))
+        print(f"DEBUG: Access Granted for user: {session['user']}")
         return f(*args, **kwargs)
     return decorated_function
 
