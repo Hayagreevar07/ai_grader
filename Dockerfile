@@ -18,5 +18,8 @@ RUN mkdir -p /code/uploads && chmod 777 /code/uploads
 # Set the default port for HG Spaces
 ENV PORT=7860
 
+# Force cache invalidation with timestamp
+RUN echo "Build: 2025-12-26-FINAL-FIX"
+
 # Command to run the application
 CMD ["gunicorn", "-b", "0.0.0.0:7860", "--timeout", "120", "--keep-alive", "5", "app:app"]
