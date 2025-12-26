@@ -19,4 +19,4 @@ RUN mkdir -p /code/uploads && chmod 777 /code/uploads
 ENV PORT=7860
 
 # Command to run the application
-CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:7860", "--timeout", "120", "--keep-alive", "5", "app:app"]
