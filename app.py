@@ -17,7 +17,11 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Auth Config (Environment Variables)
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")  # Fallback for dev
-ALLOWED_EMAILS = os.environ.get("ALLOWED_EMAILS", "admin@example.com").split(',')
+# Split by comma and strip whitespace from each email
+ALLOWED_EMAILS = [e.strip() for e in os.environ.get("ALLOWED_EMAILS", "admin@example.com").split(',')]
+
+print(f"DEBUG: Allowed Emails: {ALLOWED_EMAILS}")
+print(f"DEBUG: Admin Password Configured: {'Yes' if ADMIN_PASSWORD else 'No'}")
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -54,12 +58,20 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        if email in ALLOWED_EMAILS and password == ADMIN_PASSWORD:
-            session['user'] = email
-            flash("Logged in successfully.", "success")
-            return redirect(url_for('staff_dashboard'))
+        print(f"DEBUG: Login Attempt - Email: {email}")
+        
+        if email in ALLOWED_EMAILS:
+            if password == ADMIN_PASSWORD:
+                session['user'] = email
+                print("DEBUG: Login Success")
+                flash("Logged in successfully.", "success")
+                return redirect(url_for('staff_dashboard'))
+            else:
+                print("DEBUG: Password Mismatch")
+                flash("Invalid password.", "error")
         else:
-            flash("Invalid credentials or unauthorized email.", "error")
+            print(f"DEBUG: Email {email} not in allowed list.")
+            flash("Unauthorized email.", "error")
             
     return render_template('login.html')
 
