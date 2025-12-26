@@ -7,9 +7,15 @@ from ocr_engine import OCREngine
 from grader import Grader
 from firebase_manager import FirebaseManager
 
+import sys
+
 app = Flask(__name__)
 # CRITICAL FIX: Use a stable key so sessions don't persist across restarts/workers
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret_key_fixed_for_stability")
+
+# Force unbuffered output for debugging
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
