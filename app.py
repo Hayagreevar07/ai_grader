@@ -103,81 +103,99 @@ def student_search():
     
     return render_template('student_search.html')
 
+@app.route('/create_exam', methods=['POST'])
+@login_required
+def create_exam():
+    course_name = request.form.get('course_name')
+    answer_key = request.form.get('answer_key')
+    
+    if not course_name or not answer_key:
+        flash("Course Name and Answer Key are required.", "error")
+        return redirect(url_for('staff_dashboard'))
+        
+    exam_id = firebase_mgr.save_exam(course_name, answer_key)
+    if exam_id:
+        flash(f"Exam '{course_name}' created successfully!", "success")
+    else:
+        flash("Failed to create exam. Check connection.", "error")
+        
+    return redirect(url_for('staff_dashboard'))
+
 @app.route('/upload', methods=['GET', 'POST'])
 # @login_required  <-- DISABLED AUTHENTICATION
 def staff_dashboard():
     print(f"DEBUG: Endpoint /upload accessed. Method: {request.method}")
+    
+    # Pre-fetch exams for the dropdown
+    exams = firebase_mgr.get_all_exams()
+    
     if request.method == 'POST':
         print("DEBUG: POST request received at /upload")
         print(f"DEBUG: Files: {request.files.keys()}")
         print(f"DEBUG: Form: {request.form}")
         
-        if 'question_paper' not in request.files or 'answer_sheet' not in request.files:
-            print("DEBUG: Missing file part in request")
-            flash('No file part', "error")
-            return redirect(request.url)
+        # --- PATH 1: EXAM-BASED GRADING ---
+        exam_id = request.form.get('exam_id')
+        reg_no = request.form.get('register_number')
         
-        qp_file = request.files['question_paper']
-        ans_file = request.files['answer_sheet']
-        reg_no = request.form.get('register_number') # Required
-        expected_ans_text = request.form.get('expected_answer')
-
-        print(f"DEBUG: QP Filename: {qp_file.filename}")
-        print(f"DEBUG: Ans Filename: {ans_file.filename}")
-        print(f"DEBUG: Reg No: {reg_no}")
-
-        if qp_file.filename == '' or ans_file.filename == '':
-            print("DEBUG: Empty filename selected")
-            flash('No selected file', "error")
-            return redirect(request.url)
-
-        if not reg_no:
-            print("DEBUG: Register number missing")
-            flash('Register Number is required!', "error")
-            return redirect(request.url)
-
-        if qp_file and allowed_file(qp_file.filename) and ans_file and allowed_file(ans_file.filename):
-            print("DEBUG: Files are allowed. Saving...")
-            qp_filename = secure_filename(qp_file.filename)
-            ans_filename = secure_filename(ans_file.filename)
-            
-            qp_path = os.path.join(app.config['UPLOAD_FOLDER'], qp_filename)
-            ans_path = os.path.join(app.config['UPLOAD_FOLDER'], ans_filename)
-            
-            print(f"DEBUG: Saving to {qp_path} and {ans_path}")
-            qp_file.save(qp_path)
-            ans_file.save(ans_path)
-
-            # --- PROCESS ---
-            try:
-                # 1. OCR (Assuming we just need the answer for now, but in real app we'd process QP too)
-                print("Processing Images...")
-                # processed_qp = ocr_engine.process_image(qp_path, "printed") 
-                processed_ans = ocr_engine.process_image(ans_path, "handwritten")
-
-                # 2. Grade
-                result = grader_engine.grade_answer(processed_ans, expected_ans_text)
+        if exam_id and reg_no:
+            print(f"DEBUG: Grading for Exam ID: {exam_id}")
+            # 1. Fetch Key from DB
+            expected_ans_text = firebase_mgr.get_exam_key(exam_id)
+            if not expected_ans_text:
+                flash("Error loading Exam Key. Is the DB connected?", "error")
+                return render_template('staff_dashboard.html', exams=exams)
                 
-                # 3. Save to Cloud
-                doc_id = firebase_mgr.save_result(
-                    student_answer=result['student_answer'],
-                    key_answer=result['key_answer'],
-                    score=result['similarity_score'],
-                    is_correct=result['is_correct'],
-                    register_number=reg_no
-                )
-
-                flash("Paper Graded Successfully!", "success")
-                return render_template('result.html', 
-                                       result=result, 
-                                       doc_id=doc_id, 
-                                       reg_no=reg_no,
-                                       is_staff=True) # Staff view might have more options
-            except Exception as e:
-                flash(f"An error occurred during processing: {e}", "error")
+            # 2. Handle File
+            if 'answer_sheet' not in request.files:
+                flash('No answer sheet uploaded', "error")
                 return redirect(request.url)
+                
+            ans_file = request.files['answer_sheet']
+            if ans_file.filename == '':
+                flash('No selected file', "error")
+                return redirect(request.url)
+                
+            if ans_file and allowed_file(ans_file.filename):
+                ans_filename = secure_filename(ans_file.filename)
+                ans_path = os.path.join(app.config['UPLOAD_FOLDER'], ans_filename)
+                ans_file.save(ans_path)
+                
+                try:
+                    # OCR
+                    print("Processing Answer Sheet...")
+                    processed_ans = ocr_engine.process_image(ans_path, "handwritten")
+                    
+                    # Grade
+                    result = grader_engine.grade_answer(processed_ans, expected_ans_text)
+                    
+                    # Save
+                    doc_id = firebase_mgr.save_result(
+                        student_answer=result['student_answer'],
+                        key_answer=result['key_answer'],
+                        score=result['similarity_score'],
+                        is_correct=result['is_correct'],
+                        register_number=reg_no,
+                        image_path=ans_filename # Store filename for ref
+                    )
+                    
+                    flash("Paper Graded Successfully!", "success")
+                    return render_template('result.html', 
+                                           result=result, 
+                                           doc_id=doc_id, 
+                                           reg_no=reg_no,
+                                           is_staff=True)
+                except Exception as e:
+                    print(f"Processing Error: {e}")
+                    flash(f"Error: {e}", "error")
+                    return redirect(request.url)
 
-    return render_template('staff_dashboard.html')
+        # --- PATH 2: LEGACY/MANUAL UPLOAD (Fallback) ---
+        # (This block is preserved if user tries old form submission, but UI is updated now)
+        flash("Please select an Exam and upload the Answer Sheet.", "warning")
+        return redirect(request.url)
+
+    return render_template('staff_dashboard.html', exams=exams)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 7860))

@@ -51,12 +51,13 @@ class FirebaseManager:
             return None
 
         try:
-            # Use register_number as ID or part of query? 
-            # Better to use auto-ID but index by reg_no for search.
+            # CLEANUP: Ensure register_number is a clean string
+            reg_no_clean = str(register_number).strip()
+            
             doc_ref = self.db.collection('graded_papers').document()
             data = {
                 'timestamp': datetime.datetime.now(),
-                'register_number': register_number,
+                'register_number': reg_no_clean,  # Store clean
                 'student_answer': student_answer,
                 'key_answer': key_answer,
                 'score': score,
@@ -64,6 +65,7 @@ class FirebaseManager:
                 'image_path': image_path if image_path else "Not uploaded"
             }
             doc_ref.set(data)
+            print(f"DEBUG: Saved result for Reg No: '{reg_no_clean}' with ID: {doc_ref.id}")
             return doc_ref.id
         except Exception as e:
             print(f"Error saving to Firestore: {e}")
@@ -93,17 +95,70 @@ class FirebaseManager:
             return None
 
         try:
+            reg_no_clean = str(register_number).strip()
+            print(f"DEBUG: Searching Firestore for Reg No: '{reg_no_clean}'")
+            
             # Query the collection
+            # Use 'timestamp' ordering - requires a composite index in Firestore sometimes
+            # If search fails, try removing order_by temporarily to debug index issues
             docs = self.db.collection('graded_papers')\
-                .where('register_number', '==', register_number)\
+                .where('register_number', '==', reg_no_clean)\
                 .order_by('timestamp', direction=firestore.Query.DESCENDING)\
                 .limit(1)\
                 .stream()
             
             for doc in docs:
+                print(f"DEBUG: Found document {doc.id}")
                 return doc.to_dict() # Return the first (most recent) match
             
+            print("DEBUG: No documents found for this query.")
             return None
         except Exception as e:
             print(f"Error searching Firestore: {e}")
+            # Fallback: Try without ordering if index is missing
+            try:
+                print("DEBUG: Retrying search without sorting (Index might be missing)...")
+                docs = self.db.collection('graded_papers')\
+                    .where('register_number', '==', reg_no_clean)\
+                    .limit(1)\
+                    .stream()
+                for doc in docs:
+                    return doc.to_dict()
+            except Exception as e2:
+                print(f"Error on fallback search: {e2}")
+            return None
+
+    # --- EXAM MANAGEMENT ---
+    def save_exam(self, course_name, key_text):
+        if not self.enabled: return None
+        try:
+            doc_ref = self.db.collection('exams').document()
+            doc_ref.set({
+                'course_name': course_name.strip(),
+                'answer_key': key_text.strip(),
+                'created_at': datetime.datetime.now()
+            })
+            return doc_ref.id
+        except Exception as e:
+            print(f"Error saving exam: {e}")
+            return None
+
+    def get_all_exams(self):
+        if not self.enabled: return []
+        try:
+            exams = self.db.collection('exams').order_by('created_at', direction=firestore.Query.DESCENDING).stream()
+            return [{'id': doc.id, **doc.to_dict()} for doc in exams]
+        except Exception as e:
+            print(f"Error fetching exams: {e}")
+            return []
+    
+    def get_exam_key(self, exam_id):
+        if not self.enabled: return None
+        try:
+            doc = self.db.collection('exams').document(exam_id).get()
+            if doc.exists:
+                return doc.to_dict().get('answer_key')
+            return None
+        except Exception as e:
+            print(f"Error fetching exam key: {e}")
             return None

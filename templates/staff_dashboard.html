@@ -31,39 +31,119 @@
         </nav>
 
         <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
-            <h2 style="margin-top: 0;">Upload Answer Sheet</h2>
-            <p>Upload the question paper and student answer sheet for instant AI grading.</p>
 
-            <form method="POST" enctype="multipart/form-data">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div>
-                        <label for="register_number">Student Register Number</label>
-                        <input type="text" name="register_number" required placeholder="e.g. 2023CS101">
+            <!-- TABS NAVIGATION -->
+            <div class="tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                <button class="tab-btn active" onclick="openTab(event, 'grade-tab')" style="flex:1;">📝 Grade
+                    Student</button>
+                <button class="tab-btn" onclick="openTab(event, 'exam-tab')" style="flex:1;">📚 Create Exam</button>
+            </div>
+
+            <!-- TAB 1: GRADE STUDENT -->
+            <div id="grade-tab" class="tab-content active">
+                <h2 style="margin-top: 0;">Grade Answer Sheet</h2>
+                <p>Select an exam and upload the student's paper.</p>
+
+                <form action="{{ url_for('staff_dashboard') }}" method="POST" enctype="multipart/form-data">
+
+                    <div style="margin-bottom: 20px;">
+                        <label>Select Exam (Course)</label>
+                        <select name="exam_id" class="form-control" required
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+                            <option value="" disabled selected>-- Choose an Exam --</option>
+                            {% for exam in exams %}
+                            <option value="{{ exam.id }}">{{ exam.course_name }} ({{
+                                exam.created_at.strftime('%Y-%m-%d') }})</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </div>
 
-                <div style="margin-top: 20px;">
-                    <label for="question_paper">Question Paper (Printed)</label>
-                    <input type="file" name="question_paper" required accept=".png, .jpg, .jpeg">
-                </div>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                        <div>
+                            <label for="register_number">Student Register Number</label>
+                            <input type="text" name="register_number" required placeholder="e.g. 2023CS101">
+                        </div>
+                    </div>
 
-                <div>
-                    <label for="answer_sheet">Answer Sheet (Handwritten)</label>
-                    <input type="file" name="answer_sheet" required accept=".png, .jpg, .jpeg">
-                </div>
+                    <div style="margin-top: 20px;">
+                        <label for="answer_sheet">Student Answer Sheet</label>
+                        <input type="file" name="answer_sheet" required accept=".png, .jpg, .jpeg">
+                    </div>
 
-                <div>
-                    <label for="expected_answer">Answer Key / Expected Answer</label>
-                    <textarea name="expected_answer" rows="4"
-                        placeholder="Enter the correct answer or key points here..." required></textarea>
-                </div>
+                    <!-- Hidden QP input for backward compatibility or optional upload if needed -->
+                    <!-- For now, we rely on the exam key -->
 
-                <div style="margin-top: 2rem; text-align: right;">
-                    <button type="submit" class="btn btn-primary">Process & Grade</button>
-                </div>
-            </form>
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <button type="submit" class="btn btn-primary">Grade Paper 🚀</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 2: CREATE EXAM -->
+            <div id="exam-tab" class="tab-content" style="display: none;">
+                <h2 style="margin-top: 0;">Create New Exam</h2>
+                <p>Set up a course and answer key once, use it for many students.</p>
+
+                <form action="{{ url_for('create_exam') }}" method="POST">
+                    <div>
+                        <label>Course / Exam Name</label>
+                        <input type="text" name="course_name" required placeholder="e.g. Physics Midterm 2025">
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <label>Expected Answer Key</label>
+                        <textarea name="answer_key" rows="6" placeholder="Enter the correct answer text here..."
+                            required></textarea>
+                        <small style="color: #cbd5e1;">This key will be used to grade all students for this
+                            exam.</small>
+                    </div>
+
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <button type="submit" class="btn btn-secondary">Save Exam Configuration 💾</button>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
+
+    <style>
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 12px;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color, #4f46e5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
 </body>
 
 </html>
