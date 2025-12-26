@@ -3,22 +3,43 @@ from firebase_admin import credentials, firestore
 import os
 import datetime
 
+import json
+
 class FirebaseManager:
     def __init__(self, cred_path="serviceAccountKey.json"):
         self.db = None
         self.enabled = False
         
-        if os.path.exists(cred_path):
+        # Check for environment variable first (Cloud Deployment)
+        firebase_json = os.environ.get("FIREBASE_CREDENTIALS")
+
+        if firebase_json:
             try:
-                cred = credentials.Certificate(cred_path)
-                firebase_admin.initialize_app(cred)
+                print("Found FIREBASE_CREDENTIALS env var. Initializing...")
+                cred_dict = json.loads(firebase_json)
+                cred = credentials.Certificate(cred_dict)
+                # Check if app already initialized to avoid error on reload
+                if not firebase_admin._apps:
+                    firebase_admin.initialize_app(cred)
                 self.db = firestore.client()
                 self.enabled = True
-                print("Firebase initialized successfully.")
+                print("Firebase initialized successfully (from Environment).")
             except Exception as e:
-                print(f"Error initializing Firebase: {e}")
+                print(f"Error initializing Firebase from Env: {e}")
+        
+        # Fallback to local file (Local Development)
+        elif os.path.exists(cred_path):
+            try:
+                cred = credentials.Certificate(cred_path)
+                if not firebase_admin._apps:
+                    firebase_admin.initialize_app(cred)
+                self.db = firestore.client()
+                self.enabled = True
+                print("Firebase initialized successfully (from File).")
+            except Exception as e:
+                print(f"Error initializing Firebase from File: {e}")
         else:
-            print(f"Warning: {cred_path} not found. Firebase features disabled.")
+            print(f"Warning: {cred_path} not found and FIREBASE_CREDENTIALS not set. Firebase features disabled.")
 
     def save_result(self, student_answer, key_answer, score, is_correct, register_number, image_path=None):
         """
