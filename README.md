@@ -67,3 +67,16 @@ python main.py --question_paper "path/to/qp.jpg" --answer_sheet "path/to/answer.
 ## Models Used
 - **OCR**: Google Gemini 1.5 Flash (via Google GenAI SDK)
 - **NLP**: all-MiniLM-L6-v2 (Sentence Transformers)
+
+## 🔥 Firebase Database Setup (Optional)
+To save grading results, you need a Firebase Firestore database.
+
+1.  **Create Project:** Go to [Firebase Console](https://console.firebase.google.com/) and create a new project.
+2.  **Create Database:** Go to `Build > Firestore Database` and click **Create Database**. Select **Test Mode** for setup.
+3.  **Get Credentials:**
+    *   Go to `Project Settings` (Gear icon) > `Service accounts`.
+    *   Click **Generate new private key**.
+    *   This downloads a `.json` file (`serviceAccountKey.json`).
+4.  **Connect to App:**
+    *   **On Hugging Face:** Open the `.json` file, copy ALL text. Go to Space Settings > Secrets. Create a secret named `FIREBASE_CREDENTIALS` and paste the text.
+    *   **Locally:** Rename the file to `serviceAccountKey.json` and place it in the project root.
