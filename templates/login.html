@@ -24,22 +24,107 @@
             </div>
 
             <h2 style="margin-top: 0; text-align: center;">Staff Login</h2>
-            <p style="text-align: center; margin-bottom: 2rem;">Restricted Access</p>
+            <p style="text-align: center; margin-bottom: 2rem;">Authorized Personnel Only</p>
 
-            <form method="POST" action="/login">
-                <label for="email">Authorized Email</label>
-                <input type="email" id="email" name="email" required placeholder="admin@example.com">
+            <!-- Loading Spinner -->
+            <div id="loader" style="display:none; text-align: center; margin-bottom: 20px;">
+                <div class="spinner"></div>
+                <p>Verifying Credentials...</p>
+            </div>
 
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required placeholder="Enter password">
+            <!-- Login Form -->
+            <div id="login-container">
+                <button id="google-login-btn" class="btn btn-primary"
+                    style="width: 100%; background: white; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"
+                        alt="Google">
+                    Sign in with Google
+                </button>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Unlock Dashboard</button>
-            </form>
+                <div style="text-align: center; margin: 15px 0; color: #a5b4fc; font-size: 0.9rem;">
+                    OR
+                </div>
+
+                <form method="POST" action="/login">
+                    <input type="email" name="email" required placeholder="admin@example.com"
+                        style="margin-bottom: 10px;">
+                    <input type="password" name="password" required placeholder="Password (Legacy)"
+                        style="margin-bottom: 10px;">
+                    <button type="submit" class="btn btn-secondary" style="width: 100%;">Legacy Login</button>
+                </form>
+            </div>
+
             <div style="text-align: center; margin-top: 1.5rem;">
                 <a href="/" class="nav-link" style="margin: 0; font-size: 0.9rem;">Back to Home</a>
             </div>
         </div>
     </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // --- PASTE YOUR FIREBASE WEB CONFIG HERE ---
+        // (You get this from Project Settings -> General -> Your Apps -> Web App)
+        const firebaseConfig = {
+            apiKey: "PASTE_API_KEY_HERE",
+            authDomain: "PASTE_AUTH_DOMAIN_HERE",
+            projectId: "PASTE_PROJECT_ID_HERE",
+            storageBucket: "PASTE_STORAGE_BUCKET_HERE",
+            messagingSenderId: "PASTE_SENDER_ID",
+            appId: "PASTE_APP_ID"
+        };
+
+        // Initialize Firebase
+        // Ideally we fetch this from backend, but for setup speed, we edit here.
+        // If config is missing (default), show alert
+        if (firebaseConfig.apiKey.includes("PASTE_API_KEY_HERE")) {
+            console.warn("Firebase Config missing");
+            // We'll let the user update this file or use env vars injection later
+        } else {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const provider = new GoogleAuthProvider();
+
+            document.getElementById('google-login-btn').addEventListener('click', () => {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+
+                signInWithPopup(auth, provider)
+                    .then((result) => {
+                        const user = result.user;
+                        console.log("Google Sign In Success:", user.email);
+
+                        // Get ID Token
+                        return user.getIdToken().then(idToken => {
+                            // Send to Backend
+                            return fetch('/api/login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ idToken: idToken })
+                            });
+                        });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = data.redirect;
+                        } else {
+                            alert("Login Failed: " + data.message);
+                            document.getElementById('login-container').style.display = 'block';
+                            document.getElementById('loader').style.display = 'none';
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                        alert("Error: " + error.message);
+                        document.getElementById('login-container').style.display = 'block';
+                        document.getElementById('loader').style.display = 'none';
+                    });
+            });
+        }
+    </script>
 </body>
 
 </html>

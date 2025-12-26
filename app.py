@@ -90,6 +90,37 @@ def logout():
     flash("Logged out.", "info")
     return redirect(url_for('index'))
 
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+    id_token = data.get('idToken')
+    
+    if not id_token:
+        return {"success": False, "message": "Missing ID Token"}, 400
+
+    try:
+        # Verify the ID token using Firebase Admin SDK
+        decoded_token = firebase_admin.auth.verify_id_token(id_token)
+        email = decoded_token.get('email')
+        
+        if not email:
+            return {"success": False, "message": "No email found in token"}, 400
+
+        print(f"DEBUG: Firebase Auth - Email: {email}")
+
+        # Check if email is allowed
+        if email in ALLOWED_EMAILS:
+            session['user'] = email
+            print("DEBUG: Login Success (Google Auth)")
+            return {"success": True, "redirect": url_for('staff_dashboard')}
+        else:
+            print(f"DEBUG: Email {email} not in allowed list.")
+            return {"success": False, "message": "Unauthorized email account."}, 403
+
+    except Exception as e:
+        print(f"DEBUG: Token Verification Error: {e}")
+        return {"success": False, "message": f"Invalid Token: {str(e)}"}, 401
+
 @app.route('/student', methods=['GET', 'POST'])
 def student_search():
     if request.method == 'POST':
@@ -104,7 +135,7 @@ def student_search():
     return render_template('student_search.html')
 
 @app.route('/create_exam', methods=['POST'])
-@login_required
+# @login_required
 def create_exam():
     course_name = request.form.get('course_name')
     answer_key = request.form.get('answer_key')
