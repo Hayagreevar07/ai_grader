@@ -1,4 +1,7 @@
-# AI Grader
+# AI Grader 🚀
+
+[![Sync to Hugging Face](https://github.com/Hayagreevar/ai_grader/actions/workflows/sync.yml/badge.svg)](https://github.com/Hayagreevar/ai_grader/actions/workflows/sync.yml)
+
 
 An AI-powered tool to correct handwritten answer sheets by comparing them against a marking scheme using High-Performance OCR and Semantic Analysis.
 
