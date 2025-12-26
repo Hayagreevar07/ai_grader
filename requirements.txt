@@ -8,4 +8,5 @@ flask
 firebase-admin
 gunicorn
 
+# Force Rebuild Check
 google-generativeai
