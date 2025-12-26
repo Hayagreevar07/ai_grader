@@ -11,9 +11,15 @@ class OCREngine:
         else:
             genai.configure(api_key=self.api_key)
             print("Google Generative AI configured.")
+            # DEBUG: List available models to find the correct name
+            print("Listing available models:")
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    print(m.name)
             
-        # We use Gemini 1.5 Flash for high speed and efficiency
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # Try using the specific 'latest' alias or fallback to 'gemini-pro' (text) / 'gemini-pro-vision' logic if needed.
+        # However, 1.5-flash is multimodal. Let's try the concrete 001 version or latest.
+        self.model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
     def process_image(self, image_path, model_type="handwritten"):
         """
