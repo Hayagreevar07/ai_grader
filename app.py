@@ -107,7 +107,12 @@ def student_search():
 # @login_required  <-- DISABLED AUTHENTICATION
 def staff_dashboard():
     if request.method == 'POST':
+        print("DEBUG: POST request received at /upload")
+        print(f"DEBUG: Files: {request.files.keys()}")
+        print(f"DEBUG: Form: {request.form}")
+        
         if 'question_paper' not in request.files or 'answer_sheet' not in request.files:
+            print("DEBUG: Missing file part in request")
             flash('No file part', "error")
             return redirect(request.url)
         
@@ -116,21 +121,29 @@ def staff_dashboard():
         reg_no = request.form.get('register_number') # Required
         expected_ans_text = request.form.get('expected_answer')
 
+        print(f"DEBUG: QP Filename: {qp_file.filename}")
+        print(f"DEBUG: Ans Filename: {ans_file.filename}")
+        print(f"DEBUG: Reg No: {reg_no}")
+
         if qp_file.filename == '' or ans_file.filename == '':
+            print("DEBUG: Empty filename selected")
             flash('No selected file', "error")
             return redirect(request.url)
 
         if not reg_no:
+            print("DEBUG: Register number missing")
             flash('Register Number is required!', "error")
             return redirect(request.url)
 
         if qp_file and allowed_file(qp_file.filename) and ans_file and allowed_file(ans_file.filename):
+            print("DEBUG: Files are allowed. Saving...")
             qp_filename = secure_filename(qp_file.filename)
             ans_filename = secure_filename(ans_file.filename)
             
             qp_path = os.path.join(app.config['UPLOAD_FOLDER'], qp_filename)
             ans_path = os.path.join(app.config['UPLOAD_FOLDER'], ans_filename)
             
+            print(f"DEBUG: Saving to {qp_path} and {ans_path}")
             qp_file.save(qp_path)
             ans_file.save(ans_path)
 
