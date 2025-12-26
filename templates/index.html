@@ -26,12 +26,8 @@
         <nav class="navbar">
             <a href="/" class="logo">AI Grader</a>
             <div>
-                {% if session.get('user') %}
-                <a href="{{ url_for('staff_dashboard') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-                {% else %}
-                <a href="{{ url_for('login') }}" class="nav-link">Staff Login</a>
-                {% endif %}
+                <!-- Direct Access Enabled -->
+                <a href="{{ url_for('staff_dashboard') }}" class="btn btn-secondary">Upload Interface</a>
             </div>
         </nav>
 
@@ -42,9 +38,7 @@
                     handwritten answer sheets instantly.</p>
                 <div style="display: flex; gap: 15px;">
                     <a href="{{ url_for('student_search') }}" class="btn btn-primary">Check Results</a>
-                    {% if not session.get('user') %}
-                    <a href="{{ url_for('login') }}" class="btn btn-secondary">Admin Access</a>
-                    {% endif %}
+                    <a href="{{ url_for('staff_dashboard') }}" class="btn btn-secondary">Upload Papers</a>
                 </div>
             </div>
             <div>

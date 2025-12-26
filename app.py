@@ -98,7 +98,7 @@ def student_search():
     return render_template('student_search.html')
 
 @app.route('/upload', methods=['GET', 'POST'])
-@login_required
+# @login_required  <-- DISABLED AUTHENTICATION
 def staff_dashboard():
     if request.method == 'POST':
         if 'question_paper' not in request.files or 'answer_sheet' not in request.files:
