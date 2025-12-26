@@ -35,13 +35,13 @@ class OCREngine:
         else:
             prompt = "Please transcribe the printed text in this image exactly as it appears. Do not add any introductory text or markdown formatting. Just the raw text."
 
-        # List of models to try in order of preference
+        # List of models to try in order of preference (Based on user logs)
         candidate_models = [
+            'gemini-flash-latest',
+            'gemini-2.0-flash',
+            'gemini-2.5-flash',
             'gemini-1.5-flash',
-            'gemini-1.5-flash-001',
-            'gemini-1.5-flash-latest',
-            'gemini-pro-vision',  # Legacy backup
-            'gemini-1.5-pro'      # Slower but powerful backup
+            'gemini-pro-vision'
         ]
 
         last_error = None
