@@ -1,3 +1,13 @@
+---
+title: AI Grader
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # AI Grader 🚀
 
 [![Sync to Hugging Face](https://github.com/Hayagreevar/ai_grader/actions/workflows/sync.yml/badge.svg)](https://github.com/Hayagreevar/ai_grader/actions/workflows/sync.yml)
