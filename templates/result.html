@@ -1,67 +1,113 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block content %}
-<div class="hero" style="padding: 2rem 0;">
-    <h1>Grading Results</h1>
-</div>
+<head>
+    <meta charset="UTF-8">
+    <title>Grading Result | AI Grader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <style>
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0 auto 2rem;
+            border: 8px solid;
+        }
 
-<div class="result-grid">
-    <div class="result-card">
-        <div class="score-display">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">SIMILARITY SCORE</p>
-            <div class="score-number">{{ (result.similarity_score * 100)|round(1) }}%</div>
-            {% if result.is_correct %}
-            <span class="badge correct"><i class="fa-solid fa-check"></i> CORRECT</span>
-            {% else %}
-            <span class="badge incorrect"><i class="fa-solid fa-xmark"></i> INCORRECT</span>
+        .correct {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(72, 187, 120, 0.1);
+        }
+
+        .incorrect {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(245, 101, 101, 0.1);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .text-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="/" class="logo">AI Grader</a>
+            <div>
+                {% if session.get('user') %}
+                <a href="{{ url_for('staff_dashboard') }}" class="btn btn-secondary">Grade Another</a>
+                {% else %}
+                <a href="{{ url_for('student_search') }}" class="btn btn-secondary">Check Another</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <div class="glass-card" style="max-width: 900px; margin: 0 auto;">
+            <div style="text-align: center;">
+                <h4
+                    style="color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 2px;">
+                    Report Card</h4>
+                {% if reg_no %}
+                <h2 style="margin-top: 0;">Register No: {{ reg_no }}</h2>
+                {% endif %}
+
+                <div class="score-circle {{ 'correct' if result.is_correct else 'incorrect' }}">
+                    {{ (result.similarity_score * 100) | round | int }}%
+                </div>
+
+                <div style="font-size: 1.5rem; margin-bottom: 2rem; font-weight: 600;">
+                    Status: <span style="color: {{ '#48bb78' if result.is_correct else '#f56565' }}">{{ 'PASSED' if
+                        result.is_correct else 'FAILED' }}</span>
+                </div>
+            </div>
+
+            <div class="comparison-grid">
+                <div>
+                    <label>Student Answer (OCR)</label>
+                    <div class="text-box">
+                        {{ result.student_answer }}
+                    </div>
+                </div>
+                <div>
+                    <label>Expected Answer (Key)</label>
+                    <div class="text-box">
+                        {{ result.key_answer }}
+                    </div>
+                </div>
+            </div>
+
+            {% if doc_id %}
+            <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.8rem;">
+                Result ID: {{ doc_id }}
+            </div>
             {% endif %}
         </div>
-
-        <div class="comparison">
-            <h3>Student's Answer (OCR)</h3>
-            <div class="text-box">
-                {{ result.student_answer }}
-            </div>
-
-            <h3>Expected Key</h3>
-            <div class="text-box">
-                {{ result.key_answer }}
-            </div>
-        </div>
-
-        {% if doc_id %}
-        <div class="share-link">
-            <p style="margin-bottom: 0.5rem; font-size: 0.9rem;"><i class="fa-solid fa-share-nodes"></i> Share this
-                result:</p>
-            <input type="text" value="{{ request.url_root }}view/{{ doc_id }}" readonly onclick="this.select()">
-        </div>
-        {% endif %}
     </div>
+</body>
 
-    <div class="image-card">
-        <h3>Original Submissions</h3>
-        {% if not view_only %}
-        <div style="margin-bottom: 2rem;">
-            <p style="margin-bottom: 0.5rem; color: var(--text-muted);">Answer Sheet</p>
-            <img src="{{ url_for('static', filename='../uploads/' + ans_image) }}"
-                style="width: 100%; border-radius: 10px;">
-        </div>
-
-        <div>
-            <p style="margin-bottom: 0.5rem; color: var(--text-muted);">Question Paper</p>
-            <img src="{{ url_for('static', filename='../uploads/' + qp_image) }}"
-                style="width: 100%; border-radius: 10px;">
-        </div>
-        {% else %}
-        <div style="display: flex; height: 100%; align-items: center; justify-content: center; text-align: center;">
-            <p style="color: var(--text-muted);">Images are not available in public share view (Privacy Mode).</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<div style="text-align: center; margin-top: 3rem;">
-    <a href="/upload" class="cta-button"
-        style="background: var(--card-bg); border: 1px solid rgba(255,255,255,0.2);">Grade Another</a>
-</div>
-{% endblock %}
+</html>

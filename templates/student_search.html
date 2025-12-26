@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Student Results | AI Grader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+</head>
+
+<body>
+    <div class="container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+
+        <div class="glass-card" style="width: 100%; max-width: 500px;">
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+
+            <h2 style="margin-top: 0; text-align: center;">Student Portal</h2>
+            <p style="text-align: center;">View your graded answer sheets.</p>
+
+            <form method="POST">
+                <label for="register_number">Enter Register Number</label>
+                <input type="text" name="register_number" required placeholder="e.g. 2023CS101"
+                    style="font-size: 1.2rem; text-align: center; letter-spacing: 2px;">
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Search Results</button>
+            </form>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="/" class="nav-link" style="margin: 0;">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

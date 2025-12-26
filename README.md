@@ -4,27 +4,31 @@ An AI-powered tool to correct handwritten answer sheets by comparing them agains
 
 ## Features
 - **High-Level OCR**: Uses **Google Gemini 1.5 Flash** (Vision) to accurately transcribe both printed and handwritten text. 
-    - Replaces local heavy models for speed and state-of-the-art accuracy.
-- **Semantic Grading**: Uses `sentence-transformers` to grade answers based on meaning, not just exact keyword matching.
-- **Web Interface**: Simple Flask-based UI for uploading and viewing results.
+- **Premium UI**: Modern, glassmorphism-based design with smooth animations.
+- **Role-Based Access**:
+    - **Staff/Admin**: Secure login to upload and grade papers.
+    - **Student Portal**: Public access for students to check results using their Register Number.
+- **Semantic Grading**: Uses `sentence-transformers` for meaning-based evaluation.
 
 ## Installation
 
-1. Clone the repository (if applicable) or download the files.
+1. Clone the repository.
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. **Set up Google API Key**:
-   You need a Google API Key (free via [Google AI Studio](https://aistudio.google.com/)).
+3. **Set up Environment Variables**:
+   You need the following secrets (set them in your `.env` or Cloud Settings):
    
-   **Linux/Mac**:
-   ```bash
-   export GOOGLE_API_KEY="your_api_key_here"
-   ```
+   - `GOOGLE_API_KEY`: Your Gemini API Key.
+   - `ADMIN_PASSWORD`: Logic for staff login (default: `admin123`).
+   - `ALLOWED_EMAILS`: Comma-separated list of authorized emails (default: `admin@example.com`).
+
    **Windows (PowerShell)**:
    ```powershell
-   $env:GOOGLE_API_KEY="your_api_key_here"
+   $env:GOOGLE_API_KEY="your_key"
+   $env:ADMIN_PASSWORD="secure_pass"
+   $env:ALLOWED_EMAILS="you@domain.com,admin@domain.com"
    ```
 
 ## Usage

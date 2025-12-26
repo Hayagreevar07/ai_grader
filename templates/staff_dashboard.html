@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Dashboard | AI Grader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Flash Messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <nav class="navbar">
+            <a href="/" class="logo">AI Grader</a>
+            <div>
+                <span class="nav-link" style="color: #a5b4fc;">{{ session.get('user') }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary"
+                    style="padding: 8px 16px; margin-left: 15px;">Logout</a>
+            </div>
+        </nav>
+
+        <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
+            <h2 style="margin-top: 0;">Upload Answer Sheet</h2>
+            <p>Upload the question paper and student answer sheet for instant AI grading.</p>
+
+            <form method="POST" enctype="multipart/form-data">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label for="register_number">Student Register Number</label>
+                        <input type="text" name="register_number" required placeholder="e.g. 2023CS101">
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <label for="question_paper">Question Paper (Printed)</label>
+                    <input type="file" name="question_paper" required accept=".png, .jpg, .jpeg">
+                </div>
+
+                <div>
+                    <label for="answer_sheet">Answer Sheet (Handwritten)</label>
+                    <input type="file" name="answer_sheet" required accept=".png, .jpg, .jpeg">
+                </div>
+
+                <div>
+                    <label for="expected_answer">Answer Key / Expected Answer</label>
+                    <textarea name="expected_answer" rows="4"
+                        placeholder="Enter the correct answer or key points here..." required></textarea>
+                </div>
+
+                <div style="margin-top: 2rem; text-align: right;">
+                    <button type="submit" class="btn btn-primary">Process & Grade</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
