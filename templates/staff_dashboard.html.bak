@@ -70,60 +70,38 @@
                             </div>
                         </div>
 
-                        <!-- UPLOAD MODES NAVIGATION -->
-                        <div class="mode-switch"
-                            style="display: flex; gap: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px;">
-                            <button type="button" class="mode-btn active" id="btn-quick" onclick="switchMode('quick')">
-                                <i class="fa-solid fa-bolt"></i> Quick Drop
-                            </button>
-                            <button type="button" class="mode-btn" id="btn-manual" onclick="switchMode('manual')">
-                                <i class="fa-solid fa-keyboard"></i> Detailed Entry
-                            </button>
+                        <div class="upload-zone" id="dropZone">
+                            <i class="fa-solid fa-cloud-arrow-up"
+                                style="font-size: 3rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                            <h3 style="margin: 0; color: white;">Drag & Drop Answer Sheets</h3>
+                            <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">or click to browse</p>
+                            <input type="file" name="answer_sheets" id="fileInput" multiple accept=".png, .jpg, .jpeg"
+                                required style="opacity: 0; position: absolute; inset: 0; cursor: pointer;">
+                            <div id="fileList"
+                                style="margin-top: 10px; color: #a5b4fc; font-size: 0.85rem; display: none;">No files
+                                selected</div>
                         </div>
 
-                        <input type="hidden" name="upload_mode" id="upload_mode" value="quick">
+                        <div class="optional-section"
+                            style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <strong>Mass Upload Note:</strong> For bulk upload, ensure filenames are the Student
+                                Roll Numbers (e.g., <code>2023CS101.jpg</code>). The system will auto-detect the ID.
+                            </p>
 
-                        <!-- MODE A: QUICK DROP (Existing) -->
-                        <div id="quick-mode">
-                            <div class="upload-zone" id="dropZone">
-                                <i class="fa-solid fa-cloud-arrow-up"
-                                    style="font-size: 3rem; color: #6366f1; margin-bottom: 1rem;"></i>
-                                <h3 style="margin: 0; color: white;">Drag & Drop Answer Sheets</h3>
-                                <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">The system will read
-                                    Roll No from filenames (e.g. <code>2023CS101.jpg</code>)</p>
-                                <input type="file" name="answer_sheets_quick" id="fileInput" multiple
-                                    accept=".png, .jpg, .jpeg" required
-                                    style="opacity: 0; position: absolute; inset: 0; cursor: pointer;">
-                                <div id="fileList"
-                                    style="margin-top: 10px; color: #a5b4fc; font-size: 0.85rem; display: none;">No
-                                    files selected</div>
+                            <div class="toggle-single-mode" style="margin-top: 10px;">
+                                <label for="register_number"
+                                    style="display: block; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 5px;">
+                                    Single Student Override (Optional)
+                                </label>
+                                <input type="text" name="register_number"
+                                    placeholder="Manually enter Roll No (e.g. 2023CS001)"
+                                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white;">
+                                <small style="color: #64748b;">Leave empty for Mass ID detection from filenames.</small>
                             </div>
                         </div>
 
-                        <!-- MODE B: MANUAL LIST (New) -->
-                        <div id="manual-mode" style="display: none;">
-                            <div id="student-rows" style="display: flex; flex-direction: column; gap: 10px;">
-                                <!-- Rows will be added here -->
-                                <div class="student-row glass-panel"
-                                    style="display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
-                                    <div style="flex: 1;">
-                                        <input type="text" name="manual_rolls[]" placeholder="Roll No (e.g. 2023CS101)"
-                                            class="compact-input" style="margin:0;">
-                                    </div>
-                                    <div style="flex: 2;">
-                                        <input type="file" name="manual_files[]" accept=".png, .jpg, .jpeg"
-                                            class="compact-input" style="margin:0; padding: 10px;">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button type="button" onclick="addStudentRow()" class="btn btn-secondary"
-                                style="margin-top: 15px; width: 100%; border-style: dashed;">
-                                <i class="fa-solid fa-plus"></i> Add Another Student
-                            </button>
-                        </div>
-
-                        <!-- SUBMIT -->
                         <div style="margin-top: 2rem;">
                             <button type="submit" class="btn btn-primary"
                                 style="width: 100%; justify-content: center; font-size: 1.1rem; padding: 12px;">
@@ -250,58 +228,6 @@
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.classList.add("active");
         }
-
-        // NEW: Mode Switching Logic
-        function switchMode(mode) {
-            document.getElementById('upload_mode').value = mode;
-
-            // Toggle Buttons
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + mode).classList.add('active');
-
-            // Toggle Views
-            if (mode === 'quick') {
-                document.getElementById('quick-mode').style.display = 'block';
-                document.getElementById('manual-mode').style.display = 'none';
-                document.getElementById('fileInput').required = true;
-            } else {
-                document.getElementById('quick-mode').style.display = 'none';
-                document.getElementById('manual-mode').style.display = 'block';
-                document.getElementById('fileInput').required = false; // Disable required on hidden quick input
-            }
-        }
-
-        // NEW: Add Row Logic
-        function addStudentRow() {
-            const container = document.getElementById('student-rows');
-            const newRow = document.createElement('div');
-            newRow.className = 'student-row glass-panel';
-            newRow.style = 'display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; position:relative; animation: slideIn 0.2s ease-out;';
-            newRow.innerHTML = `
-                <div style="flex: 1;">
-                    <input type="text" name="manual_rolls[]" placeholder="Roll No" class="compact-input" style="margin:0;">
-                </div>
-                <div style="flex: 2;">
-                    <input type="file" name="manual_files[]" accept=".png, .jpg, .jpeg" class="compact-input" style="margin:0; padding: 10px;">
-                </div>
-                <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:#f56565; cursor:pointer;">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            `;
-            container.appendChild(newRow);
-        }
-
-        // File List Listener for Quick Mode
-        document.getElementById('fileInput').addEventListener('change', function (e) {
-            const count = e.target.files.length;
-            const display = document.getElementById('fileList');
-            if (count > 0) {
-                display.style.display = 'block';
-                display.innerText = `${count} files selected`;
-            } else {
-                display.style.display = 'none';
-            }
-        });
     </script>
 </body>
 

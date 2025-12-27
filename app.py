@@ -162,68 +162,127 @@ def staff_dashboard():
     
     if request.method == 'POST':
         print("DEBUG: POST request received at /upload")
-        print(f"DEBUG: Files: {request.files.keys()}")
-        print(f"DEBUG: Form: {request.form}")
         
-        # --- PATH 1: EXAM-BASED GRADING ---
         exam_id = request.form.get('exam_id')
-        reg_no = request.form.get('register_number')
+        upload_mode = request.form.get('upload_mode', 'quick')
         
-        if exam_id and reg_no:
-            print(f"DEBUG: Grading for Exam ID: {exam_id}")
-            # 1. Fetch Key from DB
-            expected_ans_text = firebase_mgr.get_exam_key(exam_id)
-            if not expected_ans_text:
-                flash("Error loading Exam Key. Is the DB connected?", "error")
-                return render_template('staff_dashboard.html', exams=exams)
+        if not exam_id:
+            flash("Please select an Exam.", "error")
+            return redirect(request.url)
+
+        # 1. Fetch Key (Common)
+        expected_ans_text = firebase_mgr.get_exam_key(exam_id)
+        if not expected_ans_text:
+            flash("Error loading Exam Key. Is the DB connected?", "error")
+            return redirect(request.url)
+
+        # Prepare list of (file, roll_no_override) tuples
+        tasks = []
+        
+        if upload_mode == 'manual':
+            # Detailed Entry Mode
+            manual_rolls = request.form.getlist('manual_rolls[]')
+            manual_files = request.files.getlist('manual_files[]')
+            
+            # Zip them. Note: If file input is empty in a row, it might still send an empty obj or match index.
+            # Flask request.files.getlist usually filters empty ones? No, usually indices match if multipart is correct.
+            # Safest is to rely on index if frontend sends empty file fields.
+            # But standard HTML form submit excludes empty file inputs? 
+            # Actually, standard browser behavior: empty file inputs are sent as empty filenames.
+            
+            for i in range(min(len(manual_rolls), len(manual_files))):
+                f = manual_files[i]
+                r = manual_rolls[i]
+                if f and f.filename != '' and r:
+                    tasks.append({'file': f, 'roll': r})
+            
+            if not tasks:
+                 flash("No valid entries found in Manual Mode. Ensure both Roll No and File are provided.", "warning")
+                 return redirect(request.url)
+                 
+        else:
+            # Quick / Default Mode
+            files = request.files.getlist('answer_sheets_quick')
+            # Fallback legacy name check
+            if not files:
+                 files = request.files.getlist('answer_sheets')
+                 
+            for f in files:
+                if f and f.filename != '':
+                    # Roll will be inferred later, pass None
+                    tasks.append({'file': f, 'roll': None})
+
+        print(f"DEBUG: Processing {len(tasks)} tasks in mode '{upload_mode}'")
+
+        success_count = 0
+        error_count = 0
+        results_summary = []
+        last_result = None
+        last_doc_id = None
+        last_roll = None
+
+        # 3. Process Execution
+        for task in tasks:
+            ans_file = task['file']
+            forced_roll = task['roll']
+            
+            try:
+                # Determine Roll No
+                if forced_roll:
+                    current_reg_no = forced_roll
+                else:
+                    # Infer from filename
+                    current_reg_no = os.path.splitext(ans_file.filename)[0]
                 
-            # 2. Handle File
-            if 'answer_sheet' not in request.files:
-                flash('No answer sheet uploaded', "error")
-                return redirect(request.url)
-                
-            ans_file = request.files['answer_sheet']
-            if ans_file.filename == '':
-                flash('No selected file', "error")
-                return redirect(request.url)
-                
-            if ans_file and allowed_file(ans_file.filename):
                 ans_filename = secure_filename(ans_file.filename)
                 ans_path = os.path.join(app.config['UPLOAD_FOLDER'], ans_filename)
                 ans_file.save(ans_path)
                 
-                try:
-                    # OCR
-                    print("Processing Answer Sheet...")
-                    processed_ans = ocr_engine.process_image(ans_path, "handwritten")
-                    
-                    # Grade
-                    result = grader_engine.grade_answer(processed_ans, expected_ans_text)
-                    
-                    # Save
-                    doc_id = firebase_mgr.save_result(
-                        student_answer=result['student_answer'],
-                        key_answer=result['key_answer'],
-                        score=result['similarity_score'],
-                        is_correct=result['is_correct'],
-                        register_number=reg_no,
-                        image_path=ans_filename # Store filename for ref
-                    )
-                    
-                    flash("Paper Graded Successfully!", "success")
-                    return render_template('result.html', 
-                                           result=result, 
-                                           doc_id=doc_id, 
-                                           reg_no=reg_no,
-                                           is_staff=True)
-                except Exception as e:
-                    print(f"Processing Error: {e}")
-                    flash(f"Error: {e}", "error")
-                    return redirect(request.url)
-
-        # --- PATH 2: LEGACY/MANUAL UPLOAD (Fallback) ---
-        # (This block is preserved if user tries old form submission, but UI is updated now)
-        flash("Please select an Exam and upload the Answer Sheet.", "warning")
+                print(f"Processing {ans_filename} for Student {current_reg_no}...")
+                
+                # OCR
+                processed_ans = ocr_engine.process_image(ans_path, "handwritten")
+                
+                # Grade
+                result = grader_engine.grade_answer(processed_ans, expected_ans_text)
+                
+                # Save
+                doc_id = firebase_mgr.save_result(
+                    student_answer=result['student_answer'],
+                    key_answer=result['key_answer'],
+                    score=result['similarity_score'],
+                    is_correct=result['is_correct'],
+                    register_number=current_reg_no,
+                    image_path=ans_filename
+                )
+                
+                success_count += 1
+                results_summary.append(f"✅ {current_reg_no}: {result['similarity_score']}%")
+                
+                # Store last for single-result redirect
+                last_result = result
+                last_doc_id = doc_id
+                last_roll = current_reg_no
+                
+            except Exception as e:
+                print(f"Error processing {ans_file.filename}: {e}")
+                error_count += 1
+                results_summary.append(f"❌ {ans_file.filename}: {str(e)}")
+        
+        # Final Summary / Redirect
+        if success_count > 0:
+            flash(f"Successfully graded {success_count} papers!", "success")
+            # If exactly one task was processed, assume user wants to see the detailed result immediately
+            if len(tasks) == 1 and last_result:
+                 return render_template('result.html', 
+                                       result=last_result, 
+                                       doc_id=last_doc_id, 
+                                       reg_no=last_roll,
+                                       is_staff=True)
+        
+        if error_count > 0:
+            flash(f"Failed to process {error_count} papers.", "error")
+            
         return redirect(request.url)
 
     return render_template('staff_dashboard.html', exams=exams)
