@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="upload-card">
+    <h2 style="margin-bottom: 2rem;">Upload Papers</h2>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="question_paper"><i class="fa-solid fa-file-pdf"></i> Question Paper (Image)</label>
+            <input type="file" name="question_paper" id="question_paper" class="form-input" accept="image/*" required>
+        </div>
+
+        <div class="form-group">
+            <label for="answer_sheet"><i class="fa-solid fa-file-signature"></i> Student Answer Sheet (Image)</label>
+            <input type="file" name="answer_sheet" id="answer_sheet" class="form-input" accept="image/*" required>
+        </div>
+
+        <div class="form-group">
+            <label for="expected_answer"><i class="fa-solid fa-key"></i> Expected Answer / Key</label>
+            <textarea name="expected_answer" id="expected_answer" class="form-input"
+                placeholder="Enter the correct answer text here for semantic comparison..." required></textarea>
+        </div>
+
+        <button type="submit" class="cta-button" style="width: 100%; border: none; cursor: pointer;">
+            <i class="fa-solid fa-robot"></i> Grade Papers
+        </button>
+    </form>
+</div>
+{% endblock %}

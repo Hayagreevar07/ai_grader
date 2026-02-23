@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Dashboard | AI Grader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Flash Messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <nav class="navbar">
+            <a href="/" class="logo">AI Grader</a>
+            <div>
+                <span class="nav-link" style="color: #a5b4fc;">{{ session.get('user') }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary"
+                    style="padding: 8px 16px; margin-left: 15px;">Logout</a>
+            </div>
+        </nav>
+
+        <div class="glass-card"
+            style="max-width: 900px; margin: 0 auto; display: flex; gap: 2rem; align-items: flex-start;">
+
+            <!-- LEFT PANEL: TABS & FORMS -->
+            <div style="flex: 2;">
+                <!-- TABS NAVIGATION -->
+                <div class="tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <button class="tab-btn active" onclick="openTab(event, 'grade-tab')" style="flex:1;">
+                        <i class="fa-solid fa-list-check"></i> Grade Papers
+                    </button>
+                    <button class="tab-btn" onclick="openTab(event, 'exam-tab')" style="flex:1;">
+                        <i class="fa-solid fa-plus-circle"></i> Create Exam
+                    </button>
+                </div>
+
+                <!-- TAB 1: GRADE STUDENT (Mass & Single) -->
+                <div id="grade-tab" class="tab-content active">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h2
+                            style="margin: 0; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            Grading Station</h2>
+                        <p style="color: #94a3b8; font-size: 0.9rem;">Process single or multiple answer sheets
+                            instantly.</p>
+                    </div>
+
+                    <form action="{{ url_for('staff_dashboard') }}" method="POST" enctype="multipart/form-data"
+                        id="gradingForm">
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="form-label">Select Exam / Course</label>
+                            <div class="select-wrapper">
+                                <select name="exam_id" class="form-control" required>
+                                    <option value="" disabled selected>-- Choose an Active Exam --</option>
+                                    {% for exam in exams %}
+                                    <option value="{{ exam.id }}">{{ exam.course_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="upload-zone" id="dropZone">
+                            <i class="fa-solid fa-cloud-arrow-up"
+                                style="font-size: 3rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                            <h3 style="margin: 0; color: white;">Drag & Drop Answer Sheets</h3>
+                            <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">or click to browse</p>
+                            <input type="file" name="answer_sheets" id="fileInput" multiple accept=".png, .jpg, .jpeg"
+                                required style="opacity: 0; position: absolute; inset: 0; cursor: pointer;">
+                            <div id="fileList"
+                                style="margin-top: 10px; color: #a5b4fc; font-size: 0.85rem; display: none;">No files
+                                selected</div>
+                        </div>
+
+                        <div class="optional-section"
+                            style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <strong>Mass Upload Note:</strong> For bulk upload, ensure filenames are the Student
+                                Roll Numbers (e.g., <code>2023CS101.jpg</code>). The system will auto-detect the ID.
+                            </p>
+
+                            <div class="toggle-single-mode" style="margin-top: 10px;">
+                                <label for="register_number"
+                                    style="display: block; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 5px;">
+                                    Single Student Override (Optional)
+                                </label>
+                                <input type="text" name="register_number"
+                                    placeholder="Manually enter Roll No (e.g. 2023CS001)"
+                                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white;">
+                                <small style="color: #64748b;">Leave empty for Mass ID detection from filenames.</small>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <button type="submit" class="btn btn-primary"
+                                style="width: 100%; justify-content: center; font-size: 1.1rem; padding: 12px;">
+                                <i class="fa-solid fa-robot"></i> Start AI Grading
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAB 2: CREATE EXAM -->
+                <div id="exam-tab" class="tab-content" style="display: none;">
+                    <h2
+                        style="margin-top: 0; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        Create New Exam</h2>
+                    <p style="color: #94a3b8;">Define the grading key for a new subject.</p>
+
+                    <form action="{{ url_for('create_exam') }}" method="POST">
+                        <div class="form-group">
+                            <label>Course / Exam Name</label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-book"></i>
+                                <input type="text" name="course_name" required placeholder="Physics Midterm 2025">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label>Expected Answer Key</label>
+                            <textarea name="answer_key" rows="8"
+                                placeholder="Enter the model answer here. The AI will compare student submission against this text."
+                                required></textarea>
+                        </div>
+
+                        <div style="margin-top: 2rem; text-align: right;">
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Exam
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: INFO & STATS -->
+            <div class="info-panel"
+                style="flex: 1; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <h4 style="color: #a5b4fc; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-info"></i> How it Works
+                </h4>
+
+                <div class="info-step">
+                    <div class="step-num">1</div>
+                    <div>
+                        <strong>Create Exam</strong>
+                        <p>Set up the Subject and provide the Answer Key text.</p>
+                    </div>
+                </div>
+
+                <div class="info-step">
+                    <div class="step-num">2</div>
+                    <div>
+                        <strong>Upload Papers</strong>
+                        <p>Drag & drop one or fifty answer sheets. We support images.</p>
+                    </div>
+                </div>
+
+                <div class="info-step">
+                    <div class="step-num">3</div>
+                    <div>
+                        <strong>Auto-ID & Grade</strong>
+                        <p>System reads <code>ROLL_NO.jpg</code> to identify student, runs OCR, and grades against your
+                            Key.</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h4 style="color: #a5b4fc; margin: 0 0 10px 0;">Pro Tips</h4>
+                    <ul
+                        style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 8px;">
+                        <li><i class="fa-solid fa-check" style="color: #4ade80; width: 20px;"></i> Ensure good lighting
+                            for scans.</li>
+                        <li><i class="fa-solid fa-check" style="color: #4ade80; width: 20px;"></i> Filenames must be
+                            unique.</li>
+                        <li><i class="fa-solid fa-check" style="color: #4ade80; width: 20px;"></i> Answer keys should
+                            cover main points.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 12px;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color, #4f46e5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .mic-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .mic-container.listening {
+            background: #ff4757;
+            box-shadow: 0 0 40px rgba(255, 71, 87, 0.6);
+            animation: pulse 1.5s infinite;
+        }
+
+        .mic-container.processing {
+            background: #ffa502;
+            box-shadow: 0 0 40px rgba(255, 165, 2, 0.6);
+            animation: spin 2s linear infinite;
+        }
+
+        .mic-icon {
+            font-size: 60px;
+        }
+
+        #status {
+            margin-top: 30px;
+            font-size: 1.2rem;
+            color: #a4b0be;
+            min-height: 1.5em;
+        }
+
+        #transcript {
+            margin-top: 10px;
+            font-size: 1rem;
+            color: #747d8c;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="mic-container" id="micBtn">
+        <div class="mic-icon">🎤</div>
+    </div>
+
+    <div id="status">Tap microphone to start</div>
+    <div id="transcript"></div>
+
+    <audio id="audioPlayer" style="display:none"></audio>
+
+    <script>
+        const micBtn = document.getElementById('micBtn');
+        const status = document.getElementById('status');
+        const transcript = document.getElementById('transcript');
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        // Check browser support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            status.innerText = "Browser not supported. Use Chrome or Edge.";
+            micBtn.style.display = 'none';
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false; // We want turn-taking for now
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+
+        let isListening = false;
+
+        micBtn.addEventListener('click', toggleListening);
+
+        function toggleListening() {
+            if (isListening) {
+                recognition.stop();
+            } else {
+                // INTERRUPTION LOGIC: Stop AI speech if user starts
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+
+                recognition.start();
+            }
+        }
+
+        recognition.onstart = function () {
+            isListening = true;
+            micBtn.classList.add('listening');
+            status.innerText = "Listening...";
+
+            // INTERRUPTION: Double check audio is stopped
+            audioPlayer.pause();
+        };
+
+        recognition.onend = function () {
+            isListening = false;
+            micBtn.classList.remove('listening');
+            if (status.innerText === "Listening...") {
+                status.innerText = "Tap to speak";
+            }
+        };
+
+        recognition.onresult = function (event) {
+            const text = event.results[0][0].transcript;
+            transcript.innerText = `You: "${text}"`;
+
+            // Send to backend
+            processVoice(text);
+        };
+
+        async function processVoice(text) {
+            status.innerText = "Thinking...";
+            micBtn.classList.add('processing');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const data = await response.json();
+
+                micBtn.classList.remove('processing');
+
+                if (data.error) {
+                    status.innerText = "Error: " + data.error;
+                } else {
+                    transcript.innerText = `AI: "${data.text}"`;
+                    status.innerText = "Speaking...";
+
+                    // Play Audio
+                    audioPlayer.src = data.audio_url;
+                    audioPlayer.play();
+
+                    audioPlayer.onended = function () {
+                        status.innerText = "Tap to reply";
+                        // Optional: Auto-restart listening for continuous conversation?
+                        // recognition.start(); 
+                    };
+                }
+            } catch (error) {
+                micBtn.classList.remove('processing');
+                status.innerText = "Network Error";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+
+</html>

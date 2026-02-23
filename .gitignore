@@ -1,0 +1,10 @@
+.env
+__pycache__/
+uploads/
+*.zip
+.venv/
+ocrdatabase-*.json
+debug_response.txt
+error_log.txt
+local_db.json
+static/audio/

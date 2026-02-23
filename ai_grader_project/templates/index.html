@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero">
+    <h1>AI-Powered Grading <br> at Speed of Light</h1>
+    <p>Upload your handwritten answer sheets and let our state-of-the-art AI grade them instantly against your marking
+        scheme.</p>
+    <a href="/upload" class="cta-button">Start Grading Now <i class="fa-solid fa-arrow-right"></i></a>
+</div>
+
+<div style="display: flex; gap: 2rem; justify-content: center; margin-top: 3rem;">
+    <div style="text-align: center; max-width: 300px;">
+        <i class="fa-solid fa-file-pen" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+        <h3>Handwriting OCR</h3>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Powered by Microsoft TrOCR for high accuracy reading.
+        </p>
+    </div>
+    <div style="text-align: center; max-width: 300px;">
+        <i class="fa-solid fa-check-double" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem;"></i>
+        <h3>Semantic Grading</h3>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Understands meaning, not just keyword matching.</p>
+    </div>
+    <div style="text-align: center; max-width: 300px;">
+        <i class="fa-solid fa-cloud" style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+        <h3>Cloud Database</h3>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Results are saved securely to the cloud for easy
+            sharing.</p>
+    </div>
+</div>
+{% endblock %}

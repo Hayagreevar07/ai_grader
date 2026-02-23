@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Grader | Next Gen Evaluation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Flash Messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <nav class="navbar">
+            <a href="/" class="logo">AI Grader</a>
+            <div>
+                <!-- Distinct Staff Login -->
+                <a href="{{ url_for('login') }}" class="nav-link" style="margin-right: 15px;">Staff Login</a>
+                <a href="{{ url_for('student_search') }}" class="btn btn-secondary">Student Results</a>
+            </div>
+        </nav>
+
+        <div class="hero-grid">
+            <div>
+                <h1>Intelligent <br>Grading System</h1>
+                <p>Experience the future of evaluation. High-performance OCR combined with semantic analysis to grade
+                    handwritten answer sheets instantly.</p>
+                <div style="display: flex; gap: 15px;">
+                    <a href="{{ url_for('student_search') }}" class="btn btn-primary">Check Results (Students)</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary">Staff Portal (Login)</a>
+                </div>
+            </div>
+            <div>
+                <div class="glass-card" style="text-align: center; padding: 4rem 2rem;">
+                    <div style="font-size: 5rem; margin-bottom: 1rem;">✍️ → 🤖</div>
+                    <h3>Instant Feedback</h3>
+                    <p style="margin-bottom: 0;">Upload your paper and get semantic grades in seconds.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FEATURES SECTION -->
+        <div
+            style="margin-top: 6rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+            <div class="glass-card" style="padding: 2rem;">
+                <h3 style="color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">📚</span> Mass Processing
+                </h3>
+                <p>Upload 100+ papers at once. Our system automatically extracts Roll Numbers from filenames and grades
+                    them sequentially.</p>
+            </div>
+            <div class="glass-card" style="padding: 2rem;">
+                <h3 style="color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">👁️</span> Advanced OCR
+                </h3>
+                <p>Powered by Next-Gen Vision Models, we can read even the messiest handwriting with high accuracy.</p>
+            </div>
+            <div class="glass-card" style="padding: 2rem;">
+                <h3 style="color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">🧠</span> Semantic Grading
+                </h3>
+                <p>We don't just match keywords. We understand the <em>meaning</em> of the answer compared to the key.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
