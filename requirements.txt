@@ -7,6 +7,8 @@ opencv-python
 flask
 firebase-admin
 gunicorn
+python-dotenv
+requests
 
 # Force Rebuild Check
 google-generativeai
