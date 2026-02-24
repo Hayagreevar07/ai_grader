@@ -9,6 +9,7 @@ firebase-admin
 gunicorn
 python-dotenv
 requests
+edge-tts
 
 # Force Rebuild Check
 google-generativeai
