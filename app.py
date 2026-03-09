@@ -18,6 +18,12 @@ app = Flask(__name__)
 # CRITICAL FIX: Use a stable key so sessions don't persist across restarts/workers
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret_key_fixed_for_stability")
 
+# Allow session cookies to work inside Hugging Face Spaces (which uses iframes)
+app.config.update(
+    SESSION_COOKIE_SAMESITE='None',
+    SESSION_COOKIE_SECURE=True  # Required if SameSite=None
+)
+
 # Force unbuffered output for debugging
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
