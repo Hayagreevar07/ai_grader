@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>All Results | AI Grader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <style>
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+            color: #a5b4fc;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-correct {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .status-incorrect {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .search-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 1.5rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #a5b4fc;
+            box-shadow: 0 0 0 2px rgba(165, 180, 252, 0.3);
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .email-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Flash Messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <nav class="navbar">
+            <a href="/" class="logo">AI Grader</a>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a href="{{ url_for('staff_dashboard') }}" class="nav-link"
+                    style="color: white; font-weight: 600; text-decoration: none;"><i class="fa-solid fa-gauge"></i>
+                    Dashboard</a>
+                <span class="nav-link" style="color: #a5b4fc;"><i class="fa-solid fa-user-tie"></i> {{
+                    session.get('user') }} (Faculty)</span>
+                <a href="{{ url_for('settings_page') }}" class="btn btn-secondary" title="System Settings"
+                    style="padding: 8px 12px;"><i class="fa-solid fa-gear"></i></a>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 8px 16px;">Logout</a>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle"
+                    title="Toggle Dark/Light Mode">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="glass-card" style="max-width: 1000px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem;">
+                <div>
+                    <h2
+                        style="margin: 0; font-weight: 700; background: var(--title-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                        Class Results Hub</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 5px;">View, search, and export
+                        all graded
+                        submissions.</p>
+                </div>
+                <div class="actions-group">
+                    <a href="{{ url_for('export_results_csv') }}" class="btn btn-secondary"
+                        style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); color: #34d399;">
+                        <i class="fa-solid fa-file-csv"></i> Export CSV
+                    </a>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"
+                    style="color: var(--text-muted); margin-left: 10px; position: absolute;"></i>
+                <input type="text" id="searchInput" class="search-input"
+                    placeholder="    Search by Roll No or Status..." onkeyup="filterTable()">
+            </div>
+
+            <div class="table-container">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Roll Number</th>
+                            <th>Similarity Score</th>
+                            <th>Status</th>
+                            <th>Graded At</th>
+                            <th>View Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if results %}
+                        {% for r in results %}
+                        <tr>
+                            <td><strong style="color: var(--text-color);">{{ r.get('register_number', 'N/A') }}</strong>
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 10px; color: var(--text-color);">
+                                    <span>{{ r.get('score', 0) }}%</span>
+                                    <div
+                                        style="flex:1; background: rgba(128,128,128,0.2); height: 6px; border-radius: 3px; overflow: hidden; min-width: 60px;">
+                                        {% if r.get('is_correct') %}
+                                        <div
+                                            style="width: {{ r.get('score', 0) }}%; background: var(--success); height: 100%;">
+                                        </div>
+                                        {% else %}
+                                        <div
+                                            style="width: {{ r.get('score', 0) }}%; background: var(--danger); height: 100%;">
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <b>{{ r.get('status', 'Graded') }}</b>
+                                </div>
+                                <div style="margin-top: 5px;">
+                                    {% if r.get('is_correct') %}
+                                    <span class="status-badge status-correct"
+                                        style="font-size: 0.75rem; padding: 2px 6px;"><i class="fa-solid fa-check"></i>
+                                        Correct</span>
+                                    {% else %}
+                                    <span class="status-badge status-incorrect"
+                                        style="font-size: 0.75rem; padding: 2px 6px;"><i class="fa-solid fa-xmark"></i>
+                                        Incorrect</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td style="color: var(--text-muted); font-size: 0.9rem;">
+                                {% if r.get('timestamp') %}
+                                {{ r.get('timestamp') }}
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                <!-- Use a simple form to POST to student search or display directly? 
+                                         Actually, we can link directly to a view page or just use the student portal -->
+                                <form action="{{ url_for('student_search') }}" method="POST" style="margin: 0;">
+                                    <input type="hidden" name="register_number" value="{{ r.get('register_number') }}">
+                                    <button type="submit" class="btn btn-secondary"
+                                        style="padding: 6px 12px; font-size: 0.85rem;"><i class="fa-solid fa-eye"></i>
+                                        View</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                <i class="fa-solid fa-folder-open"
+                                    style="font-size: 2rem; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
+                                No results found in the database.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Email Section -->
+            <div
+                style="margin-top: 2rem; background: var(--input-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--glass-border);">
+                <h3 style="margin-top: 0; color: var(--text-color); font-size: 1.1rem;"><i
+                        class="fa-solid fa-paper-plane" style="color: #a5b4fc;"></i> Send Results Report</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0;">Email the complete CSV report
+                    card
+                    directly to staff or administration.</p>
+                <form action="{{ url_for('email_results') }}" method="POST" class="email-form">
+                    <div style="position: relative; flex: 1;">
+                        <i class="fa-solid fa-envelope"
+                            style="position: absolute; left: 12px; top: 15px; color: #94a3b8;"></i>
+                        <input type="email" name="email_address" required placeholder="admin@college.edu"
+                            class="search-input" style="padding-left: 35px; width: calc(100% - 35px);">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="white-space: nowrap;">
+                        Send Email <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Search Filtering Script -->
+    <script>
+        function filterTable() {
+            var input, filter, table, tr, tdTitle, tdStatus, i, txtValueTitle, txtValueStatus;
+            input = document.getElementById("searchInput");
+            filter = input.value.toUpperCase();
+            table = document.getElementById("resultsTable");
+            tr = table.getElementsByTagName("tr");
+
+            for (i = 1; i < tr.length; i++) {
+                tdTitle = tr[i].getElementsByTagName("td")[0]; // Roll No
+                tdStatus = tr[i].getElementsByTagName("td")[2]; // Status
+
+                if (tdTitle || tdStatus) {
+                    txtValueTitle = tdTitle.textContent || tdTitle.innerText;
+                    txtValueStatus = tdStatus.textContent || tdStatus.innerText;
+
+                    if (txtValueTitle.toUpperCase().indexOf(filter) > -1 || txtValueStatus.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Theme Toggle Logic -->
+    <script>
+        const THEME_KEY = 'ai_grader_theme';
+        const defaultTheme = 'dark';
+
+        function applyTheme(themeName) {
+            if (themeName === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-sun"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-moon"></i>';
+            }
+        }
+
+        function toggleTheme() {
+            let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply on load directly
+        let savedTheme = localStorage.getItem(THEME_KEY) || defaultTheme;
+        applyTheme(savedTheme);
+    </script>
+</body>
+
+</html>

@@ -35,8 +35,44 @@
             <div style="text-align: center; margin-top: 2rem;">
                 <a href="/" class="nav-link" style="margin: 0;">Back to Home</a>
             </div>
+            <!-- Theme Toggle For Student Portal (Minimal) -->
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle" title="Toggle Dark/Light Mode"
+                    style="border: 1px solid var(--glass-border); padding: 5px 15px; border-radius: 20px;">
+                    <i class="fa-solid fa-moon"></i> Toggle Theme
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- Theme Toggle Logic -->
+    <script>
+        const THEME_KEY = 'ai_grader_theme';
+        const defaultTheme = 'dark';
+
+        function applyTheme(themeName) {
+            if (themeName === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                let tBtn = document.getElementById('themeToggle');
+                if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-sun"></i> Toggle Theme';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                let tBtn = document.getElementById('themeToggle');
+                if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-moon"></i> Toggle Theme';
+            }
+        }
+
+        function toggleTheme() {
+            let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply on load directly
+        let savedTheme = localStorage.getItem(THEME_KEY) || defaultTheme;
+        applyTheme(savedTheme);
+    </script>
 </body>
 
 </html>

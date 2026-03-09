@@ -38,7 +38,7 @@ class Grader:
 
         try:
             # Construct a prompt for semantic grading
-            system_prompt = "You are an expert teacher grading a student's answer."
+            system_prompt = "You are a strict but fair teacher grading a student's handwritten answer."
             user_prompt = f"""
             Target Key Answer: "{key_answer}"
             Student Answer: "{student_answer}"
@@ -46,14 +46,14 @@ class Grader:
             Task:
             1. Compare the MEANING of the Student Answer to the Key Answer.
             2. Ignore minor spelling/grammar mistakes.
-            3. If the meaning matches the key, give a high score (0.8 - 1.0).
-            4. If partially correct, give (0.1 - 0.7).
-            5. If completely wrong, give 0.0.
+            3. CRITICAL: Check if the Final Answer/Conclusion is present and logically matches the Key's final outcome. If the final answer is missing or incorrect, deduct significant marks (maximum score should be 0.6).
+            4. If the core steps and meaning match perfectly or very closely, give a high score (0.8 - 1.0).
+            5. Provide a Raw Score between 0.0 and 1.0.
             
-            Output format: JSON object ONLY.
+            Output format: JSON object ONLY. Do not use markdown blocks.
             {{
                 "score": <float 0.0-1.0>,
-                "reasoning": "<short text>"
+                "feedback": "<detailed 2-3 sentence explanation of what they got right, wrong, and if the final answer was present>"
             }}
             """
 
@@ -70,7 +70,6 @@ class Grader:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ]
-                # Removed response_format to avoid 400 on models that don't support it
             }
 
             response = requests.post(
@@ -82,54 +81,56 @@ class Grader:
             
             if response.status_code != 200:
                 print(f"OpenRouter Error: {response.text}")
-                with open("debug_response.txt", "w", encoding="utf-8") as f:
-                    f.write(f"Status: {response.status_code}\n")
-                    f.write(response.text)
                 return {
                     "student_answer": student_answer,
                     "key_answer": key_answer,
                     "similarity_score": 0.0,
                     "is_correct": False,
-                    "error": f"API Error {response.status_code}: {response.text}"
+                    "error": f"API Error {response.status_code}: {response.text}",
+                    "reasoning": "Failed to connect to AI engine."
                 }
 
             resp_json = response.json()
             if 'choices' not in resp_json or len(resp_json['choices']) == 0:
-                 print(f"Invalid API Response: {resp_json}")
                  return {
                     "student_answer": student_answer,
                     "key_answer": key_answer,
                     "similarity_score": 0.0,
                     "is_correct": False,
-                    "error": "Empty choices in API response"
+                    "error": "Empty choices in API response",
+                    "reasoning": "AI Engine returned no data."
                 }
 
             content = resp_json['choices'][0]['message']['content']
             
-            # Write debug log
-            with open("debug_response.txt", "w", encoding="utf-8") as f:
-                f.write(content)
-
             # Clean content just in case
             content = content.replace('```json', '').replace('```', '').strip()
             
             try:
                 result_data = json.loads(content)
-                score = float(result_data.get("score", 0.0))
-                reasoning = result_data.get("reasoning", "No reasoning.")
+                raw_score = float(result_data.get("score", 0.0))
+                feedback = result_data.get("feedback", "No detailed feedback provided.")
             except json.JSONDecodeError:
                 print(f"JSON Parse Error. Raw: {content}")
-                score = 0.0
-                reasoning = "Parse Error"
+                raw_score = 0.0
+                feedback = "Failed to parse AI response."
 
-            is_correct = score >= threshold
+            # NEW: Realistic Rules
+            # 1. 80% Rule (If 0.8 or above, award full 1.0 marks)
+            if raw_score >= 0.80:
+                final_score = 1.0
+            else:
+                final_score = raw_score
+
+            is_correct = final_score >= threshold
             
             return {
                 "student_answer": student_answer,
                 "key_answer": key_answer,
-                "similarity_score": round(score, 4),
+                "similarity_score": round(final_score, 4),
+                "accuracy_raw": round(raw_score, 4),
                 "is_correct": is_correct,
-                "reasoning": reasoning
+                "reasoning": feedback
             }
 
         except Exception as e:
@@ -139,7 +140,8 @@ class Grader:
                 "key_answer": key_answer,
                 "similarity_score": 0.0,
                 "is_correct": False,
-                "error": str(e)
+                "error": str(e),
+                "reasoning": "System Exception occurred."
             }
 
 if __name__ == "__main__":

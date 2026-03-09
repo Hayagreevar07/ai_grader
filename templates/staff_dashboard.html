@@ -23,10 +23,19 @@
 
         <nav class="navbar">
             <a href="/" class="logo">AI Grader</a>
-            <div>
-                <span class="nav-link" style="color: #a5b4fc;">{{ session.get('user') }}</span>
-                <a href="{{ url_for('logout') }}" class="btn btn-secondary"
-                    style="padding: 8px 16px; margin-left: 15px;">Logout</a>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a href="{{ url_for('all_results') }}" class="nav-link"
+                    style="color: white; font-weight: 600; text-decoration: none;"><i class="fa-solid fa-list"></i> All
+                    Results</a>
+                <span class="nav-link" style="color: #a5b4fc;"><i class="fa-solid fa-user-tie"></i> {{
+                    session.get('user') }} (Faculty)</span>
+                <a href="{{ url_for('settings_page') }}" class="btn btn-secondary" title="System Settings"
+                    style="padding: 8px 12px;"><i class="fa-solid fa-gear"></i></a>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 8px 16px;">Logout</a>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle"
+                    title="Toggle Dark/Light Mode">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
             </div>
         </nav>
 
@@ -49,7 +58,7 @@
                 <div id="grade-tab" class="tab-content active">
                     <div style="margin-bottom: 1.5rem;">
                         <h2
-                            style="margin: 0; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            style="margin: 0; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
                             Grading Station</h2>
                         <p style="color: #94a3b8; font-size: 0.9rem;">Process single or multiple answer sheets
                             instantly.</p>
@@ -136,7 +145,7 @@
                 <!-- TAB 2: CREATE EXAM -->
                 <div id="exam-tab" class="tab-content" style="display: none;">
                     <h2
-                        style="margin-top: 0; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        style="margin-top: 0; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
                         Create New Exam</h2>
                     <p style="color: #94a3b8;">Define the grading key for a new subject.</p>
 
@@ -302,6 +311,35 @@
                 display.style.display = 'none';
             }
         });
+    </script>
+
+    <!-- Theme Toggle Logic -->
+    <script>
+        const THEME_KEY = 'ai_grader_theme';
+        const defaultTheme = 'dark';
+
+        function applyTheme(themeName) {
+            if (themeName === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                let tBtn = document.getElementById('themeToggle');
+                if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                let tBtn = document.getElementById('themeToggle');
+                if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+            }
+        }
+
+        function toggleTheme() {
+            let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply on load directly
+        let savedTheme = localStorage.getItem(THEME_KEY) || defaultTheme;
+        applyTheme(savedTheme);
     </script>
 </body>
 

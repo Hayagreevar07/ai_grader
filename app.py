@@ -1,7 +1,12 @@
 import os
 import secrets
+import csv
+import io
+import datetime
+import smtplib
+from email.message import EmailMessage
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
 from werkzeug.utils import secure_filename
 from ocr_engine import OCREngine
 from grader import Grader
@@ -22,13 +27,13 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Auth Config (Environment Variables)
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")  # Fallback for dev
-# Split by comma and strip whitespace from each email
-ALLOWED_EMAILS = [e.strip() for e in os.environ.get("ALLOWED_EMAILS", "admin@example.com").split(',')]
-
-print(f"DEBUG: Allowed Emails: {ALLOWED_EMAILS}")
-print(f"DEBUG: Admin Password Configured: {'Yes' if ADMIN_PASSWORD else 'No'}")
+# Auth Config (Multi-Role Phase 3)
+# In production, these should be loaded securely from a database
+USERS = {
+    "admin@aigrader.com": {"password": "admin123", "role": "admin"},
+    "faculty@aigrader.com": {"password": "faculty123", "role": "faculty"},
+    "student@aigrader.com": {"password": "student123", "role": "student"}
+}
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -55,12 +60,6 @@ def api_chat():
     if not user_text:
         return {"error": "No text provided"}, 400
 
-    # Quick system prompt for the chat
-    # We can reuse the Grader's LLM access logic or create a helper method in Grader
-    # For simplicity, we'll use the Grader's `api_key` and `model_name` directly here 
-    # but ideally this should be a method in a 'ChatEngine' class.
-    # Since we are "hacking" this into the grader app:
-    
     import requests
     import json
     
@@ -77,7 +76,6 @@ def api_chat():
         "Content-Type": "application/json"
     }
 
-    # Personality: Helpful Assistant
     system_prompt = "You are a helpful AI Assistant for an automated grading system. Answer questions concisely and naturally, as if speaking."
     
     payload = {
@@ -98,14 +96,8 @@ def api_chat():
         
         if response.status_code == 200:
             ai_text = response.json()['choices'][0]['message']['content']
-            
-            # Generate Audio
             audio_url = voice_mgr.text_to_speech(ai_text)
-            
-            return {
-                "text": ai_text,
-                "audio_url": audio_url
-            }
+            return {"text": ai_text, "audio_url": audio_url}
         else:
              return {"error": f"LLM Error: {response.text}"}, 500
 
@@ -117,16 +109,22 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # --- Auth Decorator ---
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user' not in session:
-            print("DEBUG: Access Denied. No user in session. Redirecting to login.")
-            flash("Please log in to access this page.", "warning")
-            return redirect(url_for('login'))
-        print(f"DEBUG: Access Granted for user: {session['user']}")
-        return f(*args, **kwargs)
-    return decorated_function
+def login_required(role=None):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user' not in session:
+                flash("Please log in to access this page.", "warning")
+                return redirect(url_for('login'))
+            
+            user_role = session.get('role')
+            if role and user_role != role and user_role != 'admin': # Admin can access anything
+                flash("You do not have permission to access this portal.", "error")
+                return redirect(url_for('index'))
+                
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 # --- Routes ---
 
@@ -137,29 +135,37 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
         
         print(f"DEBUG: Login Attempt - Email: {email}")
         
-        if email in ALLOWED_EMAILS:
-            if password == ADMIN_PASSWORD:
+        user_info = USERS.get(email)
+        if user_info:
+            if password == user_info['password']:
                 session['user'] = email
-                print("DEBUG: Login Success")
+                session['role'] = user_info['role']
+                print(f"DEBUG: Login Success - Role: {user_info['role']}")
                 flash("Logged in successfully.", "success")
-                return redirect(url_for('staff_dashboard'))
+                
+                # Route based on role
+                if user_info['role'] == 'admin':
+                    return redirect(url_for('admin_dashboard'))
+                elif user_info['role'] == 'faculty':
+                    return redirect(url_for('staff_dashboard'))
+                elif user_info['role'] == 'student':
+                    return redirect(url_for('student_portal'))
             else:
-                print("DEBUG: Password Mismatch")
                 flash("Invalid password.", "error")
         else:
-            print(f"DEBUG: Email {email} not in allowed list.")
-            flash("Unauthorized email.", "error")
+            flash("Unauthorized or unknown email.", "error")
             
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
+    session.pop('role', None)
     flash("Logged out.", "info")
     return redirect(url_for('index'))
 
@@ -195,7 +201,8 @@ def api_login():
         return {"success": False, "message": f"Invalid Token: {str(e)}"}, 401
 
 @app.route('/student', methods=['GET', 'POST'])
-def student_search():
+@login_required('student')
+def student_portal():
     if request.method == 'POST':
         reg_no = request.form.get('register_number')
         if reg_no:
@@ -206,14 +213,36 @@ def student_search():
 
             result = firebase_mgr.get_result_by_reg_no(reg_no)
             if result:
-                return render_template('result.html', result=result, reg_no=reg_no)
+                # Need to manually pass doc_id because get_result_by_reg_no might not include it dynamically in mock mode
+                # Let's search all results to find the exact doc_id
+                all_res = firebase_mgr.get_all_results()
+                doc_id = next((r.get('id') for r in all_res if r.get('register_number') == reg_no), None)
+                
+                return render_template('result.html', result=result, doc_id=doc_id, reg_no=reg_no)
             else:
                 flash("No results found for this Register Number.", "error")
     
     return render_template('student_search.html')
 
+@app.route('/request_action/<action>/<doc_id>', methods=['POST'])
+@login_required('student')
+def request_student_action(action, doc_id):
+    if action not in ['recorrection', 'retest']:
+        flash("Invalid action requested.", "error")
+        return redirect(url_for('student_portal'))
+        
+    new_status = 'Pending Recorrection' if action == 'recorrection' else 'Retest Requested'
+    success = firebase_mgr.update_result_status(doc_id, new_status)
+    
+    if success:
+        flash(f"Successfully requested {action}.", "success")
+    else:
+        flash(f"Failed to request {action}. Database error.", "error")
+        
+    return redirect(url_for('student_portal'))
+
 @app.route('/create_exam', methods=['POST'])
-# @login_required
+@login_required('faculty')
 def create_exam():
     course_name = request.form.get('course_name')
     answer_key = request.form.get('answer_key')
@@ -231,7 +260,7 @@ def create_exam():
     return redirect(url_for('staff_dashboard'))
 
 @app.route('/upload', methods=['GET', 'POST'])
-# @login_required  <-- DISABLED AUTHENTICATION
+@login_required('faculty')
 def staff_dashboard():
     print(f"DEBUG: Endpoint /upload accessed. Method: {request.method}")
     
@@ -330,13 +359,17 @@ def staff_dashboard():
                 
                 # Save
                 doc_id = firebase_mgr.save_result(
-                    student_answer=result['student_answer'],
-                    key_answer=result['key_answer'],
-                    score=result['similarity_score'],
-                    is_correct=result['is_correct'],
+                    student_answer=result.get('student_answer', ''),
+                    key_answer=result.get('key_answer', ''),
+                    score=result.get('similarity_score', 0),
+                    is_correct=result.get('is_correct', False),
                     register_number=current_reg_no,
                     image_path=ans_filename
                 )
+                
+                # To support the new fields in Firebase, let's explicitly add them if we can,
+                # or just know the result object has them for display.
+                # In order to not rewrite `save_result` signature, we can rely on `last_result` to hold it.
                 
                 success_count += 1
                 results_summary.append(f"✅ {current_reg_no}: {result['similarity_score']}%")
@@ -368,6 +401,115 @@ def staff_dashboard():
         return redirect(request.url)
 
     return render_template('staff_dashboard.html', exams=exams)
+
+@app.route('/all_results')
+@login_required('faculty')
+def all_results():
+    if not firebase_mgr.enabled:
+        flash("Database disconnected. Cannot fetch results.", "error")
+    
+    results = firebase_mgr.get_all_results()
+    return render_template('all_results.html', results=results)
+
+@app.route('/export_results_csv')
+@login_required('faculty')
+def export_results_csv():
+    results = firebase_mgr.get_all_results()
+    
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Register Number', 'Score', 'Status', 'Timestamp'])
+    
+    for r in results:
+        status = "Correct" if r.get('is_correct') else "Incorrect"
+        timestamp = r.get('timestamp', '')
+        if isinstance(timestamp, datetime.datetime):
+             # Make it timezone naive or just format it
+             timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        elif hasattr(timestamp, 'strftime'):
+             timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        cw.writerow([r.get('register_number', 'N/A'), f"{r.get('score', 0)}%", status, timestamp])
+        
+    output = si.getvalue()
+    si.close()
+    
+    response = make_response(output)
+    response.headers["Content-Disposition"] = "attachment; filename=all_students_results.csv"
+    response.headers["Content-type"] = "text/csv"
+    return response
+
+@app.route('/email_results', methods=['POST'])
+@login_required('faculty')
+def email_results():
+    email_address = request.form.get('email_address')
+    if not email_address:
+         flash("Email address is required.", "error")
+         return redirect(url_for('all_results'))
+         
+    results = firebase_mgr.get_all_results()
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Register Number', 'Score', 'Status', 'Timestamp'])
+    for r in results:
+        status = "Correct" if r.get('is_correct') else "Incorrect"
+        timestamp = r.get('timestamp', '')
+        if isinstance(timestamp, datetime.datetime) or hasattr(timestamp, 'strftime'):
+             timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        cw.writerow([r.get('register_number', 'N/A'), f"{r.get('score', 0)}%", status, timestamp])
+    csv_content = si.getvalue()
+    si.close()
+
+    smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USERNAME")
+    smtp_pass = os.environ.get("SMTP_PASSWORD")
+
+    if not smtp_user or not smtp_pass:
+        flash("Email configuration (SMTP_USERNAME / SMTP_PASSWORD) is missing in .env.", "error")
+        return redirect(url_for('all_results'))
+
+    msg = EmailMessage()
+    msg['Subject'] = 'AI Grader - Class Results Report'
+    msg['From'] = smtp_user
+    msg['To'] = email_address
+    msg.set_content("Please find attached the latest report card and results for the class.\\n\\nGenerated by AI Grader.")
+    
+    msg.add_attachment(csv_content.encode('utf-8'), maintype='text', subtype='csv', filename='all_students_results.csv')
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+        flash(f"Results successfully emailed to {email_address}!", "success")
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        flash(f"Failed to send email: {e}", "error")
+
+    return redirect(url_for('all_results'))
+
+@app.route('/admin')
+@login_required('admin')
+def admin_dashboard():
+    # Fetch high-level statistics
+    results = firebase_mgr.get_all_results() if firebase_mgr.enabled else []
+    total_submissions = len(results)
+    
+    # Calculate some basic metrics
+    passed = sum(1 for r in results if r.get('is_correct'))
+    failed = total_submissions - passed
+    avg_score = sum(float(r.get('score', 0)) for r in results) / total_submissions if total_submissions > 0 else 0
+    
+    return render_template('admin_dashboard.html', 
+                           total_submissions=total_submissions,
+                           passed=passed,
+                           failed=failed,
+                           avg_score=round(avg_score, 1))
+
+@app.route('/settings')
+@login_required() # Any logged in user
+def settings_page():
+    return render_template('settings.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 7860))

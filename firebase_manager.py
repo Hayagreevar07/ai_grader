@@ -153,7 +153,8 @@ class FirebaseManager:
             'key_answer': key_answer,
             'score': score,
             'is_correct': is_correct,
-            'image_path': image_path if image_path else "Not uploaded"
+            'image_path': image_path if image_path else "Not uploaded",
+            'status': 'Graded'
         }
 
         if self.mock_mode:
@@ -220,6 +221,65 @@ class FirebaseManager:
                  for doc in docs: return doc.to_dict()
             except: pass
             return None
+
+    def get_all_results(self):
+        """Fetch all results across all students, sorted by newest first."""
+        if not self.enabled: return []
+
+        if self.mock_mode:
+            results = self.local_db.get_all('graded_papers')
+            # Sort by timestamp descending
+            results.sort(key=lambda x: str(x.get('timestamp', '')), reverse=True)
+            return results
+
+        try:
+            docs = self.db.collection('graded_papers')\
+                .order_by('timestamp', direction=firestore.Query.DESCENDING)\
+                .stream()
+            
+            # Extract dictionary and attach document ID
+            all_results = []
+            for doc in docs:
+                data = doc.to_dict()
+                data['id'] = doc.id
+                all_results.append(data)
+            return all_results
+            
+        except Exception as e:
+            print(f"Error fetching all results from Firestore: {e}")
+            # Fallback without ordering if index is missing
+            try:
+                docs = self.db.collection('graded_papers').stream()
+                all_results = [{'id': d.id, **d.to_dict()} for d in docs]
+                # Manual sort
+                all_results.sort(key=lambda x: str(x.get('timestamp', '')), reverse=True)
+                return all_results
+            except Exception as inner_e:
+                print(f"Fallback fetch failed: {inner_e}")
+                return []
+
+
+    def update_result_status(self, doc_id, new_status):
+        """Update the status of a specific result (e.g., 'Pending Recorrection', 'Retest Requested')."""
+        if not self.enabled: return False
+        
+        if self.mock_mode:
+            doc = self.get_result(doc_id)
+            if doc:
+                doc['status'] = new_status
+                self.local_db.add_document('graded_papers', doc) # Mock DB add_document acts like an upsert/re-save if ID exists, actually wait, local_db uses UUID. We should write a direct update.
+                self.local_db.data['graded_papers'][doc_id]['status'] = new_status
+                self.local_db.save()
+                return True
+            return False
+
+        try:
+            doc_ref = self.db.collection('graded_papers').document(doc_id)
+            doc_ref.update({'status': new_status})
+            return True
+        except Exception as e:
+            print(f"Error updating status in Firestore: {e}")
+            return False
 
     # --- EXAM MANAGEMENT ---
     def save_exam(self, course_name, key_text):

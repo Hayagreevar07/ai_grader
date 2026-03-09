@@ -10,8 +10,15 @@
 </head>
 
 <body>
+    <div class="container" style="position: relative; z-index: 1;">
+        <!-- Decorative Orbs Specific to Landing Page -->
+        <div
+            style="position: absolute; top: 0%; left: 0%; width: 400px; height: 400px; background: rgba(59, 130, 246, 0.2); border-radius: 50%; filter: blur(100px); z-index: -1; animation: float 18s infinite alternate ease-in-out;">
+        </div>
+        <div
+            style="position: absolute; top: 40%; right: 10%; width: 350px; height: 350px; background: rgba(236, 72, 153, 0.15); border-radius: 50%; filter: blur(90px); z-index: -1; animation: float 22s infinite alternate-reverse ease-in-out;">
+        </div>
 
-    <div class="container">
         <!-- Flash Messages -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -23,60 +30,121 @@
             {% endwith %}
         </div>
 
-        <nav class="navbar">
-            <a href="/" class="logo">AI Grader</a>
-            <div>
-                <!-- Distinct Staff Login -->
-                <a href="{{ url_for('login') }}" class="nav-link" style="margin-right: 15px;">Staff Login</a>
-                <a href="{{ url_for('student_search') }}" class="btn btn-secondary">Student Results</a>
+        <nav class="navbar"
+            style="border-bottom: 1px solid var(--glass-border-highlight); padding-bottom: 20px; margin-bottom: 4rem;">
+            <a href="/" class="logo" style="font-size: 1.8rem; letter-spacing: -0.5px;"><i
+                    class="fa-solid fa-graduation-cap"></i> AI Grader</a>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <a href="{{ url_for('login') }}" class="btn btn-primary"
+                    style="padding: 10px 24px; border-radius: 12px; font-size: 0.95rem;">
+                    Sign In Portal <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle" title="Toggle Dark/Light Mode"
+                    style="background: var(--glass-bg); border: 1px solid var(--glass-border-highlight); padding: 10px; border-radius: 50%;">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
             </div>
         </nav>
 
-        <div class="hero-grid">
-            <div>
-                <h1>Intelligent <br>Grading System</h1>
-                <p>Experience the future of evaluation. High-performance OCR combined with semantic analysis to grade
-                    handwritten answer sheets instantly.</p>
-                <div style="display: flex; gap: 15px;">
-                    <a href="{{ url_for('student_search') }}" class="btn btn-primary">Check Results (Students)</a>
-                    <a href="{{ url_for('login') }}" class="btn btn-secondary">Staff Portal (Login)</a>
+        <div class="hero-grid"
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; margin-bottom: 6rem;">
+            <div style="padding-right: 2rem;">
+                <div
+                    style="display: inline-block; padding: 6px 16px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 50px; color: #818cf8; font-size: 0.85rem; font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-bolt"></i> NEXT-GEN EVALUATION
+                </div>
+                <h1 style="font-size: 4.5rem; letter-spacing: -2px; margin-bottom: 1.5rem;">Intelligent <br>Grading
+                    System</h1>
+                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2.5rem; line-height: 1.8;">
+                    Experience the future of education. High-performance Vision OCR combined with Semantic LLM analysis
+                    to grade handwritten answer sheets instantly and accurately.
+                </p>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary"
+                        style="font-size: 1.1rem; padding: 16px 32px;">
+                        Access Portal <i class="fa-solid fa-rocket"></i>
+                    </a>
                 </div>
             </div>
-            <div>
-                <div class="glass-card" style="text-align: center; padding: 4rem 2rem;">
-                    <div style="font-size: 5rem; margin-bottom: 1rem;">✍️ → 🤖</div>
-                    <h3>Instant Feedback</h3>
-                    <p style="margin-bottom: 0;">Upload your paper and get semantic grades in seconds.</p>
+            <div style="position: relative;">
+                <div class="glass-card"
+                    style="text-align: center; padding: 5rem 3rem; position: relative; z-index: 2; border-top: 2px solid var(--glass-border-highlight); border-left: 2px solid var(--glass-border-highlight);">
+                    <div
+                        style="font-size: 6rem; margin-bottom: 1.5rem; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));">
+                        ✍️ <span style="opacity: 0.5;">→</span> 🤖</div>
+                    <h3
+                        style="font-size: 2rem; margin-bottom: 1rem; background: var(--title-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        Instant Feedback</h3>
+                    <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0;">Upload your paper and get
+                        semantic grades and detailed feedback in seconds.</p>
                 </div>
             </div>
         </div>
 
         <!-- FEATURES SECTION -->
         <div
-            style="margin-top: 6rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-            <div class="glass-card" style="padding: 2rem;">
-                <h3 style="color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5rem;">📚</span> Mass Processing
-                </h3>
-                <p>Upload 100+ papers at once. Our system automatically extracts Roll Numbers from filenames and grades
-                    them sequentially.</p>
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-bottom: 4rem;">
+            <div class="glass-card"
+                style="padding: 2.5rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--glass-border-highlight);">
+                <div
+                    style="width: 50px; height: 50px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: #818cf8; font-size: 1.5rem; border: 1px solid rgba(99, 102, 241, 0.3);">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <h3 style="margin: 0; font-size: 1.5rem; color: var(--text-color);">Mass Processing</h3>
+                <p style="margin: 0; color: var(--text-muted); font-size: 1rem; line-height: 1.6;">Upload 100+ papers at
+                    once. Our system automatically extracts Roll Numbers and evaluates them sequentially.</p>
             </div>
-            <div class="glass-card" style="padding: 2rem;">
-                <h3 style="color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5rem;">👁️</span> Advanced OCR
-                </h3>
-                <p>Powered by Next-Gen Vision Models, we can read even the messiest handwriting with high accuracy.</p>
+
+            <div class="glass-card"
+                style="padding: 2.5rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--glass-border-highlight);">
+                <div
+                    style="width: 50px; height: 50px; border-radius: 12px; background: rgba(236, 72, 153, 0.15); display: flex; align-items: center; justify-content: center; color: #f472b6; font-size: 1.5rem; border: 1px solid rgba(236, 72, 153, 0.3);">
+                    <i class="fa-solid fa-eye"></i>
+                </div>
+                <h3 style="margin: 0; font-size: 1.5rem; color: var(--text-color);">Advanced OCR</h3>
+                <p style="margin: 0; color: var(--text-muted); font-size: 1rem; line-height: 1.6;">Powered by Next-Gen
+                    Vision Models, we accurately read and preserve even the most complex or messy handwriting.</p>
             </div>
-            <div class="glass-card" style="padding: 2rem;">
-                <h3 style="color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5rem;">🧠</span> Semantic Grading
-                </h3>
-                <p>We don't just match keywords. We understand the <em>meaning</em> of the answer compared to the key.
-                </p>
+
+            <div class="glass-card"
+                style="padding: 2.5rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--glass-border-highlight);">
+                <div
+                    style="width: 50px; height: 50px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; color: #34d399; font-size: 1.5rem; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h3 style="margin: 0; font-size: 1.5rem; color: var(--text-color);">Semantic Grading</h3>
+                <p style="margin: 0; color: var(--text-muted); font-size: 1rem; line-height: 1.6;">We don't just match
+                    keywords. The engine understands the contextual <em>meaning</em> of answers against the rubric.</p>
             </div>
         </div>
     </div>
 
+    <!-- Theme Toggle Logic -->
+    <script>
+        const THEME_KEY = 'ai_grader_theme';
+        const defaultTheme = 'dark';
+
+        function applyTheme(themeName) {
+            if (themeName === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-sun"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-moon"></i>';
+            }
+        }
+
+        function toggleTheme() {
+            let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply on load directly
+        let savedTheme = localStorage.getItem(THEME_KEY) || defaultTheme;
+        applyTheme(savedTheme);
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard | AI Grader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Flash Messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <nav class="navbar">
+            <a href="/" class="logo">AI Grader</a>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span class="nav-link" style="color: #a5b4fc;"><i class="fa-solid fa-user-shield"></i> {{
+                    session.get('user') }} (Admin)</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 8px 16px;">Logout</a>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle"
+                    title="Toggle Dark/Light Mode">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div style="text-align: center; margin-bottom: 3rem; margin-top: 2rem;">
+            <h1
+                style="background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">
+                System Overview</h1>
+            <p style="color: #94a3b8; font-size: 1.1rem;">Manage the AI Grader platform and view high-level statistics.
+            </p>
+        </div>
+
+        <div class="hero-grid" style="align-items: start;">
+            <!-- Left Side: Statistics -->
+            <div>
+                <div class="glass-card" style="padding: 2rem;">
+                    <h3 style="margin-top: 0; color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-chart-pie"></i> Platform Metrics
+                    </h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2.5rem; font-weight: 800; color: white;">{{ total_submissions }}
+                            </div>
+                            <div
+                                style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                                Total Submissions</div>
+                        </div>
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #a5b4fc;">{{ avg_score }}%</div>
+                            <div
+                                style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                                Average Score</div>
+                        </div>
+                        <div
+                            style="background: rgba(74,222,128,0.1); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid rgba(74,222,128,0.2);">
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #4ade80;">{{ passed }}</div>
+                            <div
+                                style="color: #4ade80; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                                Total Passed</div>
+                        </div>
+                        <div
+                            style="background: rgba(248,113,113,0.1); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid rgba(248,113,113,0.2);">
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #f87171;">{{ failed }}</div>
+                            <div
+                                style="color: #f87171; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                                Total Failed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Quick Actions -->
+            <div>
+                <div class="glass-card" style="padding: 2rem;">
+                    <h3 style="margin-top: 0; color: #a5b4fc; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-bolt"></i> Quick Actions
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+                        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem;" disabled
+                            title="Coming soon">
+                            <i class="fa-solid fa-users" style="width: 25px;"></i> Manage Faculty Accounts
+                        </button>
+                        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem;" disabled
+                            title="Coming soon">
+                            <i class="fa-solid fa-database" style="width: 25px;"></i> Database Backup
+                        </button>
+                        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 1rem;" disabled
+                            title="Coming soon">
+                            <i class="fa-solid fa-gear" style="width: 25px;"></i> System Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle Logic -->
+    <script>
+        const THEME_KEY = 'ai_grader_theme';
+        const defaultTheme = 'dark';
+
+        function applyTheme(themeName) {
+            if (themeName === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                let tBtn = document.getElementById('themeToggle');
+                if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                let tBtn = document.getElementById('themeToggle');
+                if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+            }
+        }
+
+        function toggleTheme() {
+            let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply on load directly
+        let savedTheme = localStorage.getItem(THEME_KEY) || defaultTheme;
+        applyTheme(savedTheme);
+    </script>
+</body>
+
+</html>

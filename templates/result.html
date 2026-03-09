@@ -58,12 +58,16 @@
     <div class="container">
         <nav class="navbar">
             <a href="/" class="logo">AI Grader</a>
-            <div>
+            <div style="display: flex; align-items: center; gap: 15px;">
                 {% if session.get('user') %}
                 <a href="{{ url_for('staff_dashboard') }}" class="btn btn-secondary">Grade Another</a>
                 {% else %}
                 <a href="{{ url_for('student_search') }}" class="btn btn-secondary">Check Another</a>
                 {% endif %}
+                <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle"
+                    title="Toggle Dark/Light Mode">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
             </div>
         </nav>
 
@@ -77,13 +81,36 @@
                 {% endif %}
 
                 <div class="score-circle {{ 'correct' if result.is_correct else 'incorrect' }}">
-                    {{ ((result.similarity_score if result.similarity_score is defined else result.score) * 100) | round | int }}%
+                    {{ ((result.similarity_score if result.similarity_score is defined else result.score) * 100) | round
+                    | int }}%
                 </div>
 
                 <div style="font-size: 1.5rem; margin-bottom: 2rem; font-weight: 600;">
-                    Status: <span style="color: {{ '#48bb78' if result.is_correct else '#f56565' }}">{{ 'PASSED' if
-                        result.is_correct else 'FAILED' }}</span>
+                    Overall Status: <span style="color: {{ '#10b981' if result.is_correct else '#ef4444' }}">{{ 'PASSED'
+                        if result.is_correct else 'FAILED' }}</span>
                 </div>
+            </div>
+
+            <!-- New Feedback Section -->
+            <div
+                style="margin: 2rem 0; padding: 1.5rem; background: var(--input-bg); border-radius: 8px; border-left: 4px solid var(--primary-gradient);">
+                <h3 style="margin-top: 0; color: #a5b4fc; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-chalkboard-user"></i> AI Teacher Feedback
+                </h3>
+                <p style="margin-bottom: 0; color: var(--text-color); line-height: 1.6;">
+                    {% if result.reasoning %}
+                    {{ result.reasoning }}
+                    {% else %}
+                    No detailed feedback recorded for this submission.
+                    {% endif %}
+                </p>
+                {% if result.accuracy_raw is defined %}
+                <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                    <strong>Raw Semantic Accuracy:</strong> {{ (result.accuracy_raw * 100) | round }}%
+                    <span style="opacity: 0.7;">(Note: Submissions over 80% are automatically awarded 100% full marks if
+                        finals match)</span>
+                </div>
+                {% endif %}
             </div>
 
             <div class="comparison-grid">
@@ -103,11 +130,59 @@
 
             {% if doc_id %}
             <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.8rem;">
-                Result ID: {{ doc_id }}
+                Result ID: {{ doc_id }} | Status: <b style="color: #a5b4fc;">{{ result.status if result.status else
+                    'Graded' }}</b>
             </div>
+
+            {% if session.get('role') == 'student' %}
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 1.5rem;">
+                <!-- Recorrection -->
+                <form action="{{ url_for('request_student_action', action='recorrection', doc_id=doc_id) }}"
+                    method="POST">
+                    <button type="submit" class="btn btn-secondary" style="border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="fa-solid fa-flag"></i> Request Recorrection
+                    </button>
+                </form>
+
+                <!-- Retest -->
+                <form action="{{ url_for('request_student_action', action='retest', doc_id=doc_id) }}" method="POST">
+                    <button type="submit" class="btn btn-secondary" style="border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="fa-solid fa-rotate-right"></i> Request Retest
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
             {% endif %}
         </div>
     </div>
+
+    <!-- Theme Toggle Logic -->
+    <script>
+        const THEME_KEY = 'ai_grader_theme';
+        const defaultTheme = 'dark';
+
+        function applyTheme(themeName) {
+            if (themeName === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-sun"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('themeToggle').innerHTML = '<i class="fa-solid fa-moon"></i>';
+            }
+        }
+
+        function toggleTheme() {
+            let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply on load directly
+        let savedTheme = localStorage.getItem(THEME_KEY) || defaultTheme;
+        applyTheme(savedTheme);
+    </script>
 </body>
 
 </html>
