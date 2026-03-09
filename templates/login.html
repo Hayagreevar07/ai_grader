@@ -121,65 +121,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-        // --- FIREBASE WEB CONFIG ---
-        // --- FIREBASE WEB CONFIG ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDxhKU7KCZeDoM77v9ptd7a9ht6f4UVr44",
-            authDomain: "ocrdatabase-9d830.firebaseapp.com",
-            projectId: "ocrdatabase-9d830",
-            storageBucket: "ocrdatabase-9d830.firebasestorage.app",
-            messagingSenderId: "910595630896",
-            appId: "1:910595630896:web:3ca2a00835348b04234af5",
-            measurementId: "G-VK5VD264JB"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-
-        document.getElementById('google-login-btn').addEventListener('click', () => {
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('loader').style.display = 'block';
-
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    const user = result.user;
-                    console.log("Google Sign In Success:", user.email);
-
-                    // Get ID Token
-                    return user.getIdToken().then(idToken => {
-                        // Send to Backend
-                        return fetch('/api/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ idToken: idToken })
-                        });
-                    });
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = data.redirect;
-                    } else {
-                        alert("Login Failed: " + data.message);
-                        document.getElementById('login-container').style.display = 'block';
-                        document.getElementById('loader').style.display = 'none';
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error:", error);
-                    alert("Error: " + error.message);
-                    document.getElementById('login-container').style.display = 'block';
-                    document.getElementById('loader').style.display = 'none';
-                });
-        });
-    </script>
+    <!-- Firebase SDK (Removed Google Sign-In logic as it is obsolete here) -->
     <!-- Theme Toggle Logic -->
     <script>
         const THEME_KEY = 'ai_grader_theme';
