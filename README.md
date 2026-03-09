@@ -1,3 +1,12 @@
+---
+title: AI Grader
+emoji: 🎓
+colorFrom: blue
+colorTo: pink
+sdk: docker
+pinned: false
+---
+
 <div align="center">
   <img src="https://img.shields.io/badge/AI-Grader-4f46e5?style=for-the-badge&logo=flask&logoColor=white" alt="AI Grader Banner">
   <h1>✨ AI Grader ✨</h1>
